@@ -5,6 +5,8 @@ r_planet = 1000 * 10**3
 r_impactor = 100 * 10**3
 rho_mantle = 3000 
 rho_core = 8000
+P_cmb = 136 * 10**9
+T_cmb = 4000
 
 # Mantle composition: all chondritic, in wt%
 si = 10.7
@@ -20,7 +22,7 @@ fe = 85
 ni = 15
 
 planet_mantle_depth = 300 * 10**3  # given
-impactor_core_radius = 53.1329  * 10**3  ## assuming core/mantle mass ratio to be the same as present day Earth's
+impactor_core_radius = 53.1329  * 10**3  # assuming core/mantle mass ratio to be the same as present day Earth's
 impactor_mantle_depth = r_impactor - impactor_core_radius
 
 def calculate_shell_vol(mantle_depth, r_obj):
@@ -40,11 +42,11 @@ fe_mass = calculate_element_mass(impactor_core_mass, fe)
 # ni_mass = calculate_element_mass(impactor_core_mass, ni)
 
 si_mass = calculate_element_mass(planet_mantle_mass, si) + calculate_element_mass(impactor_mantle_mass, si)
-mg_mass = calculate_element_mass(planet_mantle_mass, si)
-al_mass = calculate_element_mass(planet_mantle_mass, si)
-co_mass = calculate_element_mass(planet_mantle_mass, si)
-v_mass = calculate_element_mass(planet_mantle_mass, si)
-cr_mass = calculate_element_mass(planet_mantle_mass, si)
+mg_mass = calculate_element_mass(planet_mantle_mass, si) + calculate_element_mass(impactor_mantle_mass, mg)
+al_mass = calculate_element_mass(planet_mantle_mass, si) + calculate_element_mass(impactor_mantle_mass, al)
+co_mass = calculate_element_mass(planet_mantle_mass, si) + calculate_element_mass(impactor_mantle_mass, co)
+v_mass = calculate_element_mass(planet_mantle_mass, si) + calculate_element_mass(impactor_mantle_mass, v)
+cr_mass = calculate_element_mass(planet_mantle_mass, si) + calculate_element_mass(impactor_mantle_mass, cr)
 
 def calculate_kd(metal, T, P, a, b, c):
     if metal == "si":
@@ -52,3 +54,6 @@ def calculate_kd(metal, T, P, a, b, c):
     else:
         return 10**(a + b / T + c * P / T)
 
+kd_si = calculate_kd("si", T_cmb, P_cmb, 2.98, -15934)
+
+# if si_mass < fe_mass:
