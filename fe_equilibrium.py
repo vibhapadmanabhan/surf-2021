@@ -1,129 +1,142 @@
 import math
-from scipy.optimize import fsolve
+import numpy as np
+import matplotlib.pyplot as plt
 
 # constants
-r_planet = 1000 * 10E3
-r_impactor = 100 * 10E3
-rho_mantle = 3000 
+r_planet = 1000 * 1E3 # m
+rho_mantle = 3000
 rho_core = 8000
 P_cmb = 0.7 * 25 # in GPa, assuming 70% of CMB pressure. CMB pressure depends on size of the planet.
 T_cmb = 4000
 
-# Mantle composition: chondritic, in wt%, ignoring trace elements.
+# Mantle composition: chondritic, in wt%, ignoring trace elements and Ni, Fe.
 si = 10.7
 
 # Core composition, in wt%
 fe = 85
 ni = 15
 
-planet_mantle_depth = 300 * 10E3  # given
-impactor_core_radius = 53.1329  * 10E3  # assuming core/mantle mass ratio to be the same as present day Earth's
-impactor_mantle_depth = r_impactor - impactor_core_radius
+# molar masses (g / mol)
+molar_mass_fe = 55.8
+molar_mass_ni = 58.7
+molar_mass_si = 28
+
+planet_mantle_depth = 300 * 1E3  # given
+
+def calculate_impactor_core_radius(impactor_radius):
+    """
+    Returns the radius of the core of a body in meters using Earth's core-mantle mass ratio.
+    """
+    return (0.15 * impactor_radius**3)**(1 / 3)
+
 
 def calculate_shell_vol(mantle_depth, r_obj):
+    """Returns the volume of a spherical shell given the width of the shell and its outer radius."""
     return 4 / 3 * math.pi * (r_obj**3 - (r_obj - mantle_depth)**3)
 
+
 def calculate_vol(r_obj):
+    """Returns the volume of a sphere."""
     return 4 / 3 * math.pi * r_obj**3
 
+
 def calculate_element_mass(section_mass, element_wt_percent):
-    return section_mass * element_wt_percent * 0.01
+    """Returns the mass of an element in g in the mantle/core given the wt% of the element. """
+    return section_mass * element_wt_percent * 0.01 * 1000
+
 
 def convert_mass_to_moles(compound_mass, compound_molar_mass):
+    """Converts mass to moles given the mass of a compound in g and its molar mass in g / mol."""
     return compound_mass / compound_molar_mass
 
-impactor_mantle_mass = calculate_shell_vol(impactor_mantle_depth, r_impactor) * rho_mantle
-planet_mantle_mass = calculate_shell_vol(planet_mantle_depth, r_planet) * rho_mantle
-impactor_core_mass = calculate_vol(impactor_core_radius) * rho_core
 
-fe_mass = calculate_element_mass(impactor_core_mass, fe)
-ni_mass = calculate_element_mass(impactor_core_mass, ni)
+def calculate_total_element_moles(element, element_molar_mass, planet_mantle_depth, r_planet, r_impactor, impactor_core_radius):
+    """Given an impactor and planet, calculates the total number of moles of Si, Ni, or Fe.
+    
+    Does not calculate moles of O."""
+    if element == si:
+        mass = (calculate_shell_vol(planet_mantle_depth, r_planet) + calculate_shell_vol(r_impactor - impactor_core_radius, r_impactor)) * rho_mantle
+        element_mass = calculate_element_mass(mass, si)
+        return convert_mass_to_moles(element_mass, element_molar_mass)
+    mass = calculate_vol(impactor_core_radius) * rho_core
+    element_mass = calculate_element_mass(mass, element)
+    return convert_mass_to_moles(element_mass, element_molar_mass)
 
-# total amounts of elements
-mol_fe = convert_mass_to_moles(fe_mass, 55.8)
-mol_ni = convert_mass_to_moles(ni_mass, 58.7)
-mol_si = convert_mass_to_moles(calculate_element_mass(planet_mantle_mass, si) + calculate_element_mass(impactor_mantle_mass, si), 28)
-mol_o = 2 * mol_si  # from SiO2
 
 def calculate_kd(metal, T, P, a, b, c):
+    """Calculates K_d using constants given in Rubie 2015 Table S1 and Rubie 2015 equation (3)."""
     if metal == "si":
         return math.exp(a + b / T + (-155 * P + 2.26 * P**2 - 0.011 * P**3) / T)
     else:
-        return 10**(a + b / T + c * P / T)
+        return math.exp(a + b / T + c * P / T)
+
 
 # actual distribution constants from Rubie
 actual_kd_si = calculate_kd("si", T_cmb, P_cmb, 2.98, -15934, None)
 actual_kd_ni = calculate_kd("ni", T_cmb, P_cmb, 1.06, 1553, -98)
-print("Actual k_d", actual_kd_ni, actual_kd_si)
-# mass balance
-def calculate_vals(mol_fe_metal, mol_si_metal, mol_si, mol_ni, mol_o, mol_fe):
+
+def f(fe_metal, mol_fe, mol_ni, mol_si, mol_o):
     """
-    Returns the number of moles of (FeO, Ni, NiO, SiO2) in a tuple given initial values for Fe and Si.
+    Returns the difference between the actual value of K_d(Si-Fe) and calculated value for K_d(Si-Fe). (Root of function will be found at the 
+    correct value of K_d)
     """
-    mol_FeO = mol_fe - mol_fe_metal
-    mol_SiO2 = mol_si - mol_si_metal
-    mol_NiO = mol_o - 2 * mol_SiO2 - mol_FeO
-    mol_ni_metal = mol_ni - mol_NiO
-    return ((mol_FeO, mol_ni_metal, mol_NiO, mol_SiO2))
-
-def kd_ni(mol_fe_metal, mol_FeO, mol_ni_metal, mol_NiO, mol_si_metal, mol_SiO2):
-    """
-    Calculates K_d for the reaction NiO + Fe <--> FeO + Ni.
-    """
-    conc_fe_metal = mol_fe_metal / (mol_fe_metal + mol_si_metal + mol_ni_metal)
-    conc_FeO = mol_FeO / (mol_FeO + mol_NiO + mol_SiO2)
-    conc_ni_metal = mol_ni_metal / (mol_fe_metal + mol_si_metal + mol_ni_metal)
-    conc_NiO = mol_NiO / (mol_FeO + mol_NiO + mol_SiO2)
-    return conc_ni_metal * conc_FeO / conc_NiO / conc_fe_metal
-
-def kd_si(mol_fe_metal, mol_FeO, mol_ni_metal, mol_NiO, mol_si_metal, mol_SiO2):
-    """
-    Calculates K_d for the reaction # SiO2 + 2Fe <--> 2FeO + Si.
-    """
-    conc_fe_metal = mol_fe_metal / (mol_fe_metal + mol_si_metal + mol_ni_metal)
-    conc_FeO = mol_FeO / (mol_FeO + mol_NiO + mol_SiO2)
-    conc_si_metal = mol_si_metal / (mol_fe_metal + mol_si_metal + mol_ni_metal)
-    conc_SiO2 = mol_SiO2 / (mol_FeO + mol_NiO + mol_SiO2)
-    return conc_si_metal * conc_FeO**2 / conc_SiO2 / conc_fe_metal**2
-
-# initial guesses for Fe and Si
-mol_fe_metal = mol_fe - 10E17
-mol_si_metal = 10E15
-
-# calculate other initial values
-mol_FeO, mol_ni_metal, mol_NiO, mol_SiO2 = calculate_vals(mol_fe, 0, mol_si, mol_ni, mol_o, mol_fe)
-
-# print initial values
-print("Initial values:")
-print(mol_fe_metal, mol_FeO, mol_ni_metal, mol_NiO, mol_si_metal, mol_SiO2)
+    fe_sil = mol_fe - fe_metal
+    ni_sil = mol_ni * fe_sil / (fe_sil + actual_kd_ni * fe_metal)
+    ni_metal = mol_ni - ni_sil
+    si_sil = (mol_o - ni_sil - fe_sil) / 2
+    si_metal = mol_si - si_sil
+    conc_si_metal = si_metal / (si_metal + fe_metal + ni_metal)
+    conc_si_sil = si_sil / (si_sil + fe_sil + ni_sil)
+    conc_fe_metal = fe_metal / (fe_metal + ni_metal + si_metal)
+    conc_fe_sil = fe_sil / (fe_sil + ni_sil + si_sil)
+    return  conc_si_metal * conc_fe_sil**2 / conc_si_sil / conc_fe_metal**2 - actual_kd_si
 
 
-kd_ni_calc = kd_ni(mol_fe_metal, mol_FeO, mol_ni_metal, mol_NiO, mol_si_metal, mol_SiO2)
+def root_bracket(mol_fe, mol_ni, mol_o, mol_si):
+    """Finds the lower bound of an interval that can be used for the bisection search."""
+    val = 1e1
+    FB = f(mol_fe, mol_fe, mol_ni, mol_si, mol_o)
+    while val <= mol_fe and FB * f(val, mol_fe, mol_ni, mol_si, mol_o) > 0:
+        val *= 10
+    return val
 
-# use Le Chatelier's principle to converge on correct values
-while kd_ni_calc < actual_kd_ni:
-    # print("loop")
-    mol_fe_metal += 10E17
-    mol_FeO, mol_ni_metal, mol_NiO, mol_SiO2 = calculate_vals(mol_fe_metal, mol_si_metal, mol_si, mol_ni, mol_o, mol_fe)
-    kd_si_calc = kd_si(mol_fe_metal, mol_FeO, mol_ni_metal, mol_NiO, mol_si_metal, mol_SiO2)
-    if kd_si_calc < actual_kd_si:
-        mol_si_metal += 10E17
-        mol_FeO, mol_ni_metal, mol_NiO, mol_SiO2 = calculate_vals(mol_fe_metal, mol_si_metal, mol_si, mol_ni, mol_o, mol_fe)
-    kd_ni_calc = kd_ni(mol_fe_metal, mol_FeO, mol_ni_metal, mol_NiO, mol_si_metal, mol_SiO2)
+def bisection_search(a, b, eps, mol_fe, mol_ni, mol_si, mol_o):
+    while True:
+        FA = f(a, mol_fe, mol_ni, mol_si, mol_o)
+        fe_metal = (a + b) / 2
+        FP = f(fe_metal, mol_fe, mol_ni, mol_si, mol_o)
+        if np.abs(FP) <= eps: # close enough to true value
+            break
+        if FA * FP > 0:
+            a = fe_metal
+        else:
+            b = fe_metal
+    return fe_metal
 
 
-print("final values: ", mol_fe_metal, mol_si_metal)
-print("calculated K_d: ", kd_ni(mol_fe_metal, mol_FeO, mol_ni_metal, mol_NiO, mol_si_metal, mol_SiO2), kd_si(mol_fe_metal, mol_FeO, mol_ni_metal, mol_NiO, mol_si_metal, mol_SiO2))
-# print("Calculated value for Ni-Fe: ", kd_ni(mol_fe_metal, mol_FeO, mol_ni_metal, mol_NiO, mol_si_metal, mol_SiO2))
+# check for 990 km and 1000 km radius
+r_impactor = [i * 10 * 1e3 for i in range(1, 98)]
+X_FeO = []
+for i in range(len(r_impactor)):
+    mol_si = calculate_total_element_moles(si, molar_mass_si, planet_mantle_depth, r_planet, r_impactor[i], calculate_impactor_core_radius(r_impactor[i]))
+    mol_fe = calculate_total_element_moles(fe, molar_mass_fe, planet_mantle_depth, r_planet, r_impactor[i], calculate_impactor_core_radius(r_impactor[i]))
+    mol_ni = calculate_total_element_moles(ni, molar_mass_ni, planet_mantle_depth, r_planet, r_impactor[i], calculate_impactor_core_radius(r_impactor[i]))
+    mol_o = 2 * mol_si
+    fe_metal = bisection_search(root_bracket(mol_fe, mol_ni, mol_si, mol_o), mol_fe, 10e-7, mol_fe, mol_ni, mol_si, mol_o)
+    fe_sil = mol_fe - fe_metal
+    ni_sil = mol_ni * fe_sil / (fe_sil + actual_kd_ni * fe_metal)
+    ni_metal = mol_ni - ni_sil
+    si_sil = (mol_o - ni_sil - fe_sil) / 2
+    si_metal = mol_si - si_sil
+    X_FeO.append(fe_sil / (fe_sil + ni_sil + si_sil))
+    
 
-# print("Calculated value for Si-Fe: ", kd_si(mol_fe_metal, mol_FeO, mol_ni_metal, mol_NiO, mol_si_metal, mol_SiO2))
+r_impactor = [i / 1e3 for i in r_impactor]
+plt.plot(r_impactor, X_FeO)
+plt.xlabel("Radius of impactor (km)")
+plt.ylabel("X_FeO")
+plt.title("X_FeO vs impactor radius (for a 1000 km radius planet)")
+plt.show()
 
-
-# x[0] is Fe_m, x[1] is FeO, x[2] is Si_m, x[3] is SiO, x[4] is Ni_m, x[5] is NiO
-# def func(x, mol_fe, mol_ni, mol_si, mol_o, kd_ni, kd_si):
-#    return [x[0] + x[1] - mol_fe, x[2] + x[3] - mol_si, x[4] + x[5] - mol_ni, x[1] + x[3] + x[5] - mol_o, 
-#    x[4] / (x[4] + x[0] + x[2]) * (x[1] / (x[1] + x[3] + x[5])) / (x[5] / (x[1] + x[2] + x[3])) / (x[0] / (x[2] + x[4] + x[0])) - kd_ni, 
-#    x[2] / (x[4] + x[0] + x[2]) * (x[1] / (x[1] + x[3] + x[5]))**2 / (x[3] / (x[1] + x[2] + x[3])) / (x[0] / (x[2] + x[4] + x[0]))**2 -  #kd_si]
-
-#root = fsolve(func, [10E19, 10E18, 10E17, 10E21, 10E20, 10E10], (mol_fe, mol_ni, mol_si, mol_o, kd_ni, kd_si))
-#print(root)
+def calculate_o_iw_fugacity(X_FeO, X_Fe):
+    return math.exp(2 * math.log(X_FeO / X_Fe))
