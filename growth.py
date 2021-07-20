@@ -3,17 +3,19 @@ from fe_equilibrium import *
 # knowns
 r_planet = 100 * 1e3
 r_impactor = 10 * 1e3
-melt_factor = 2
+melt_factor = 10
+k = 258838500680.3066 # using Mars mass-g relationship
 
 def calculate_g(M_p):
-    return M_p**0.503
+    return M_p**0.503 / k
 
 def calculate_h(melt_vol, planet_size):
     # considering even melting across surface?
-    return (planet_size**3 - 3 / 4 / math.pi * melt_vol)**(1 / 3)
+    """Returns the depth of mantle that is melted by an impactor."""
+    return planet_size - (planet_size**3 - 3 / 4 / math.pi * melt_vol)**(1 / 3)
 
 def Peq(g, h):
-    return rho_mantle * g * h
+    return rho_mantle * g * h / 1e9
 
 def added_depth(initial_radius, added_mass, rho):
     """Return increase in radius / depth of core / mantle respectively given added mass."""
@@ -39,6 +41,8 @@ v_metal = 0
 while r_planet <= 1e6:
     planet_size.append(r_planet)
     h = calculate_h(melt_factor * calculate_vol(r_impactor), r_planet)
+    g_acc = calculate_g(planet_mass(r_planet, planet_core_radius))
+
     c_impactor = core_radius(r_impactor)
     mol_fe = calculate_total_element_moles(fe, molar_mass_fe, h, r_planet, r_impactor, c_impactor)
 
@@ -48,8 +52,8 @@ while r_planet <= 1e6:
 
     mol_v = calculate_total_element_moles(v, molar_mass_v, h, r_planet, r_impactor, c_impactor)
 
-    P_eq = Peq(calculate_g(planet_mass(r_planet, planet_core_radius)), h)
-
+    P_eq = Peq(g_acc, h)
+    print(P_eq)
     mol_o = 2 * mol_si
 
     fe_metal = bisection_search(f, root_bracket(f, mol_fe, mol_ni, mol_si, mol_o, mol_v, P_eq, v_metal), mol_fe, 10e-7, mol_fe, mol_ni, mol_si, mol_o, mol_v, P_eq, v_metal)
@@ -78,3 +82,4 @@ plt.xlabel("Planet radius (km)")
 plt.ylabel("ln(fO2) - IW")
 plt.title("Fugacity vs. planet radius")
 plt.show()
+print(fO2[:10])
