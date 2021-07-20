@@ -80,7 +80,7 @@ actual_kd_si = calculate_kd("si", T_cmb, P_eq, 2.98, -15934, None)
 actual_kd_ni = calculate_kd("ni", T_cmb, P_eq, 1.06, 1553, -98)
 actual_kd_v = calculate_kd("v", T_cmb, P_eq, -0.48, -5063, 0)
 
-def f(fe_metal, mol_fe, mol_ni, mol_si, mol_o, mol_v, v_metal, P_eq):
+def f(fe_metal, mol_fe, mol_ni, mol_si, mol_o, mol_v, P_eq, v_metal):
     """
     Returns the difference between the actual value of K_d(Si-Fe) and calculated value for K_d(Si-Fe). (Root of function will be found at the 
     correct value of K_d)
@@ -99,7 +99,7 @@ def f(fe_metal, mol_fe, mol_ni, mol_si, mol_o, mol_v, v_metal, P_eq):
 
 
 # still working on this function
-def g(fe_metal, mol_fe, mol_ni, mol_si, mol_o, P_eq, ni_metal, si_metal, mol_v, v_metal):
+def g(v_metal, mol_fe, mol_ni, mol_si, mol_o, mol_v, P_eq, fe_metal):
     """
     Returns the difference between the actual value of K_d(V-Fe) and calculated value for K_d(V-Fe). (Root of function will be found at the 
     correct value of K_d)
@@ -110,6 +110,7 @@ def g(fe_metal, mol_fe, mol_ni, mol_si, mol_o, P_eq, ni_metal, si_metal, mol_v, 
     ni_metal = mol_ni - ni_sil
     si_sil = (mol_o - ni_sil - fe_sil) / 2  # ignore mass of V oxides
     si_metal = mol_si - si_sil
+    # v_metal does not exist!
     conc_v_metal = v_metal / (si_metal + fe_metal + ni_metal + v_metal)
     conc_v_sil = (mol_v - v_metal) / (si_sil + fe_sil + ni_sil + mol_v - v_metal)
     conc_fe_metal = fe_metal / (fe_metal + ni_metal + si_metal + v_metal)
@@ -117,26 +118,30 @@ def g(fe_metal, mol_fe, mol_ni, mol_si, mol_o, P_eq, ni_metal, si_metal, mol_v, 
     return  conc_v_metal * conc_fe_sil**(3 / 2) / conc_v_sil / conc_fe_metal**(3 / 2) - actual_kd_v
 
 
-def root_bracket(func, mol_fe, mol_ni, mol_o, mol_si, P_eq, ni_metal, si_metal, mol_v, v_metal):
-    """Finds the lower bound of an interval that can be used for the bisection search."""
-    val = 10
+def root_bracket(func, mol_fe, mol_ni, mol_si, mol_o, mol_v, P_eq, aux):
+    """Finds the lower/upper bound of an interval that can be used for the bisection search.
+    
+    When used to calculate fe_metal from kd(Si-Fe) the last argument is not needed."""
     if func == f:
-        FB = func(mol_fe, mol_fe, mol_ni, mol_si, mol_o, P_eq)
-        while val <= mol_fe and FB * f(val, mol_fe, mol_ni, mol_si, mol_o, P_eq) > 0:
+        val = 1
+        FB = func(mol_fe, mol_fe, mol_ni, mol_si, mol_o, mol_v, P_eq, aux)
+        while val <= mol_fe and FB * f(val, mol_fe, mol_ni, mol_si, mol_o, mol_v, P_eq, aux) > 0:
             val *= 1.2  # multiply by small enough number for root to be found
         return val
     elif func == g:
-        FB = g(mol_fe, mol_fe, mol_ni, mol_si, mol_o, P_eq, ni_metal, si_metal, mol_v, v_metal)
-        while val <= mol_fe and FB * g(val, mol_fe, mol_ni, mol_si, mol_o, P_eq, ni_metal, si_metal, mol_v, v_metal) > 0:
-            val *= 1.2  # multiply by small enough number for root to be found
+        val = 10e-6
+        FA = g(0, mol_fe, mol_ni, mol_si, mol_o, mol_v, P_eq, aux)
+        while val <= mol_v and FA * g(val, mol_fe, mol_ni, mol_si, mol_o, mol_v, P_eq, aux) > 0:
+            val *= 1.1
         return val
 
 
-def bisection_search(func, a, b, eps, mol_fe, mol_ni, mol_si, mol_o, P_eq, ni_metal, si_metal, mol_v, v_metal):
+def bisection_search(func, a, b, eps, mol_fe, mol_ni, mol_si, mol_o, mol_v, P_eq, aux):
+    """Aux refers to either fe_metal or v_metal, depending on which function kd(Si-Fe) or kd(V-Fe) is being searched for the root."""
     while True:
-        FA = func(a, mol_fe, mol_ni, mol_si, mol_o, P_eq, ni_metal, si_metal, mol_v, v_metal)
+        FA = func(a, mol_fe, mol_ni, mol_si, mol_o, mol_v, P_eq, aux)
         elem_metal = (a + b) / 2
-        FP = func(fe_metal, mol_fe, mol_ni, mol_si, mol_o, P_eq, ni_metal, si_metal, mol_v, v_metal)
+        FP = func(elem_metal, mol_fe, mol_ni, mol_si, mol_o, mol_v, P_eq, aux)
         if np.abs(FP) <= eps: # close enough to true value
             break
         if FA * FP > 0:
@@ -151,50 +156,161 @@ def calculate_ln_o_iw_fugacity(X_FeO, X_Fe):
 
 
 # still working on everything below, feel free to comment out
-# r_impactor = [i * 10 * 1e3 for i in range(1, 10)]
-# # r_impactor = 100 * 1e3
-# # P_eq = [i * 0.1 * P_cmb for i in range(1, 10)]
-# X_FeO = []
-# X_Fe = []
-# X_Si = []
-# X_V2O3 = []
-# v_metal = 0
-# # mantle_depth = [i * 1e3 for i in range(300, 701)]
-# for i in range(len(r_impactor)):
-#     mol_si = calculate_total_element_moles(si, molar_mass_si, planet_mantle_depth, r_planet, r_impactor[i], calculate_impactor_core_radius(r_impactor[i]))
-#     mol_fe_s = calculate_total_element_moles(fe_s, molar_mass_fe + molar_mass_o, planet_mantle_depth, r_planet, r_impactor[i], calculate_impactor_core_radius(r_impactor[i]))
-#     mol_fe = calculate_total_element_moles(fe, molar_mass_fe, planet_mantle_depth, r_planet, r_impactor[i], calculate_impactor_core_radius(r_impactor[i])) + mol_fe_s
-#     mol_ni = calculate_total_element_moles(ni, molar_mass_ni, planet_mantle_depth, r_planet, r_impactor[i], calculate_impactor_core_radius(r_impactor[i]))
-#     # consider vanadium in the mantle of the planet
-#     mol_v = calculate_total_element_moles(v, molar_mass_v, planet_mantle_depth, r_planet, r_impactor[i], calculate_impactor_core_radius(r_impactor[i]))
+r_impactor = [i * 10 * 1e3 for i in range(1, 10)]
+# r_impactor = 100 * 1e3
+# P_eq = [i * 0.1 * P_cmb for i in range(1, 10)]
+X_FeO = []
+X_Fe = []
+X_Si = []
+X_Va = []
+v_metal = 10
+# mantle_depth = [i * 1e3 for i in range(300, 701)]
+for i in range(len(r_impactor)):
+    print(i)
+    mol_si = calculate_total_element_moles(si, molar_mass_si, planet_mantle_depth, r_planet, r_impactor[i], calculate_impactor_core_radius(r_impactor[i]))
+    mol_fe_s = calculate_total_element_moles(fe_s, molar_mass_fe + molar_mass_o, planet_mantle_depth, r_planet, r_impactor[i], calculate_impactor_core_radius(r_impactor[i]))
+    mol_fe = calculate_total_element_moles(fe, molar_mass_fe, planet_mantle_depth, r_planet, r_impactor[i], calculate_impactor_core_radius(r_impactor[i])) + mol_fe_s
+    mol_ni = calculate_total_element_moles(ni, molar_mass_ni, planet_mantle_depth, r_planet, r_impactor[i], calculate_impactor_core_radius(r_impactor[i]))
+    # consider vanadium in the mantle of the planet
+    mol_v = calculate_total_element_moles(v, molar_mass_v * 2 + molar_mass_o * 3, planet_mantle_depth, r_planet, r_impactor[i], calculate_impactor_core_radius(r_impactor[i]))
+    mol_o = 2 * mol_si + mol_fe_s # ignore contributions of V oxides in mass balance for O
 
-#     mol_o = 2 * mol_si + mol_fe_s
+    fe_metal = bisection_search(f, root_bracket(f, mol_fe, mol_ni, mol_si, mol_o, mol_v, P_eq, v_metal), mol_fe, 10e-7, mol_fe, mol_ni, mol_si, mol_o, mol_v, P_eq, v_metal)
 
-#     fe_metal = bisection_search(f, root_bracket(f, mol_fe, mol_ni, mol_si, mol_o, P_eq, None, None, None, None), mol_fe, 10e-7, mol_fe, mol_ni, mol_si, mol_o, P_eq)
-    
+    fe_sil = mol_fe - fe_metal
+    ni_sil = mol_ni * fe_sil / (fe_sil + actual_kd_ni * fe_metal)
+    ni_metal = mol_ni - ni_sil
+    si_sil = (mol_o - ni_sil - fe_sil) / 2
+    si_metal = mol_si - si_sil
+
+    v_metal = bisection_search(g, root_bracket(g, mol_fe, mol_ni, mol_si, mol_o, mol_v, P_eq, fe_metal), mol_v, 10e-7, mol_fe, mol_ni, mol_si, mol_o, mol_v, P_eq, fe_metal)
+    v_sil = mol_v - v_metal
+
+    X_Si.append(si_metal)
+    X_FeO.append(fe_sil / (fe_sil + ni_sil + si_sil + v_sil))
+    X_Fe.append(fe_metal / (fe_metal + ni_metal + si_metal + v_metal))
+    X_Va.append(v_sil / (v_sil + ni_sil + fe_sil + si_sil))
+
+r_impactor = [i / 1e3 for i in r_impactor]
+
+fO2 = []
+for i in range(len(r_impactor)):
+    fO2.append(calculate_ln_o_iw_fugacity(X_FeO[i], X_Fe[i]))
+
+plt.plot(r_impactor, X_Va)
+plt.xlabel("Impactor radius (km)")
+plt.ylabel("X_V2O3")
+plt.title("X_V2O3 vs impactor radius (for a 1000 km radius planet)")
+plt.show()
+
+# def f(fe_metal, mol_fe, mol_ni, mol_si, mol_o):
+#     """
+#     Returns the difference between the actual value of K_d(Si-Fe) and calculated value for K_d(Si-Fe). (Root of function will be found at the 
+#     correct value of K_d)
+#     """
+#     actual_kd_si = calculate_kd("si", T_cmb, P_eq, 2.98, -15934, None)
 #     fe_sil = mol_fe - fe_metal
 #     ni_sil = mol_ni * fe_sil / (fe_sil + actual_kd_ni * fe_metal)
 #     ni_metal = mol_ni - ni_sil
-
-#     si_sil = (mol_o - ni_sil - fe_sil) / 2
+#     si_sil = (mol_o - ni_sil - fe_sil) / 2  # ignore mass of V oxides
 #     si_metal = mol_si - si_sil
-
-#     v_metal = bisection_search(g, root_bracket(g, mol_fe, mol_ni, ni_metal, mol_si, si_metal, mol_o, mol_v, v_metal, P_eq), mol_fe, 10e-7, mol_fe, mol_ni, mol_si, mol_o, P_eq)
-#     v_sil = mol_v - v_metal
-#     X_Si.append(si_metal)
-#     X_FeO.append(fe_sil / (fe_sil + ni_sil + si_sil + v_sil))
-#     X_Fe.append(fe_metal / (fe_metal + ni_metal + si_metal + v_metal))
-#     X_V2O3.append(v_sil / (v_sil + ni_sil + fe_sil + si_sil))
-
-# r_impactor = [i / 1e3 for i in r_impactor]
+#     conc_si_metal = si_metal / (si_metal + fe_metal + ni_metal)
+#     conc_si_sil = si_sil / (si_sil + fe_sil + ni_sil)
+#     conc_fe_metal = fe_metal / (fe_metal + ni_metal + si_metal)
+#     conc_fe_sil = fe_sil / (fe_sil + ni_sil + si_sil)
+#     return  conc_si_metal * conc_fe_sil**2 / conc_si_sil / conc_fe_metal**2 - actual_kd_si
 
 
-# fO2 = []
-# for i in range(len(r_impactor)):
-#     fO2.append(calculate_ln_o_iw_fugacity(X_FeO[i], X_Fe[i]))
+# # still working on this function
+# def g(fe_metal, mol_fe, mol_ni, mol_si, mol_o, P_eq, ni_metal, si_metal, mol_v, v_metal):
+#     """
+#     Returns the difference between the actual value of K_d(V-Fe) and calculated value for K_d(V-Fe). (Root of function will be found at the 
+#     correct value of K_d)
+#     """
+#     actual_kd_v = calculate_kd("v", T_cmb, P_eq, -0.48, -5063, 0)
+#     fe_sil = mol_fe - fe_metal
+#     ni_sil = mol_ni * fe_sil / (fe_sil + actual_kd_ni * fe_metal)
+#     ni_metal = mol_ni - ni_sil
+#     si_sil = (mol_o - ni_sil - fe_sil) / 2  # ignore mass of V oxides
+#     si_metal = mol_si - si_sil
+#     conc_v_metal = v_metal / (si_metal + fe_metal + ni_metal + v_metal)
+#     conc_v_sil = (mol_v - v_metal) / (si_sil + fe_sil + ni_sil + mol_v - v_metal)
+#     conc_fe_metal = fe_metal / (fe_metal + ni_metal + si_metal + v_metal)
+#     conc_fe_sil = fe_sil / (fe_sil + ni_sil + si_sil + mol_v - v_metal)
+#     return  conc_v_metal * conc_fe_sil**(3 / 2) / conc_v_sil / conc_fe_metal**(3 / 2) - actual_kd_v
 
-# plt.plot(r_impactor, X_V2O3)
-# plt.xlabel("Impactor radius (km)")
-# plt.ylabel("X_V2O3")
-# plt.title("X_V2O3 vs impactor radius (for a 1000 km radius planet)")
-# plt.show()
+
+# def root_bracket(mol_fe, mol_ni, mol_si, mol_o):
+#     """Finds the lower bound of an interval that can be used for the bisection search."""
+#     val = 1e1
+#     FB = f(mol_fe, mol_fe, mol_ni, mol_si, mol_o)
+#     while val <= mol_fe and FB * f(val, mol_fe, mol_ni, mol_si, mol_o) > 0:
+#         val *= 10
+#     return val
+
+# def bisection_search(a, b, eps, mol_fe, mol_ni, mol_si, mol_o):
+#     while True:
+#         FA = f(a, mol_fe, mol_ni, mol_si, mol_o)
+#         fe_metal = (a + b) / 2
+#         FP = f(fe_metal, mol_fe, mol_ni, mol_si, mol_o)
+#         if np.abs(FP) <= eps: # close enough to true value
+#             break
+#         if FA * FP > 0:
+#             a = fe_metal
+#         else:
+#             b = fe_metal
+#     return fe_metal
+
+
+# def calculate_ln_o_iw_fugacity(X_FeO, X_Fe):
+#      return 2 * math.log(X_FeO / X_Fe)
+
+
+# # still working on everything below, feel free to comment out
+# # r_impactor = [i * 10 * 1e3 for i in range(1, 10)]
+# # # r_impactor = 100 * 1e3
+# # # P_eq = [i * 0.1 * P_cmb for i in range(1, 10)]
+# # X_FeO = []
+# # X_Fe = []
+# # X_Si = []
+# # X_V2O3 = []
+# # v_metal = 0
+# # # mantle_depth = [i * 1e3 for i in range(300, 701)]
+# # for i in range(len(r_impactor)):
+# #     mol_si = calculate_total_element_moles(si, molar_mass_si, planet_mantle_depth, r_planet, r_impactor[i], calculate_impactor_core_radius(r_impactor[i]))
+# #     mol_fe_s = calculate_total_element_moles(fe_s, molar_mass_fe + molar_mass_o, planet_mantle_depth, r_planet, r_impactor[i], calculate_impactor_core_radius(r_impactor[i]))
+# #     mol_fe = calculate_total_element_moles(fe, molar_mass_fe, planet_mantle_depth, r_planet, r_impactor[i], calculate_impactor_core_radius(r_impactor[i])) + mol_fe_s
+# #     mol_ni = calculate_total_element_moles(ni, molar_mass_ni, planet_mantle_depth, r_planet, r_impactor[i], calculate_impactor_core_radius(r_impactor[i]))
+# #     # consider vanadium in the mantle of the planet
+# #     mol_v = calculate_total_element_moles(v, molar_mass_v, planet_mantle_depth, r_planet, r_impactor[i], calculate_impactor_core_radius(r_impactor[i]))
+
+# #     mol_o = 2 * mol_si + mol_fe_s
+
+# #     fe_metal = bisection_search(f, root_bracket(f, mol_fe, mol_ni, mol_si, mol_o, P_eq, None, None, None, None), mol_fe, 10e-7, mol_fe, mol_ni, mol_si, mol_o, P_eq)
+    
+# #     fe_sil = mol_fe - fe_metal
+# #     ni_sil = mol_ni * fe_sil / (fe_sil + actual_kd_ni * fe_metal)
+# #     ni_metal = mol_ni - ni_sil
+
+# #     si_sil = (mol_o - ni_sil - fe_sil) / 2
+# #     si_metal = mol_si - si_sil
+
+# #     v_metal = bisection_search(g, root_bracket(g, mol_fe, mol_ni, ni_metal, mol_si, si_metal, mol_o, mol_v, v_metal, P_eq), mol_fe, 10e-7, mol_fe, mol_ni, mol_si, mol_o, P_eq)
+# #     v_sil = mol_v - v_metal
+# #     X_Si.append(si_metal)
+# #     X_FeO.append(fe_sil / (fe_sil + ni_sil + si_sil + v_sil))
+# #     X_Fe.append(fe_metal / (fe_metal + ni_metal + si_metal + v_metal))
+# #     X_V2O3.append(v_sil / (v_sil + ni_sil + fe_sil + si_sil))
+
+# # r_impactor = [i / 1e3 for i in r_impactor]
+
+
+# # fO2 = []
+# # for i in range(len(r_impactor)):
+# #     fO2.append(calculate_ln_o_iw_fugacity(X_FeO[i], X_Fe[i]))
+
+# # plt.plot(r_impactor, X_V2O3)
+# # plt.xlabel("Impactor radius (km)")
+# # plt.ylabel("X_V2O3")
+# # plt.title("X_V2O3 vs impactor radius (for a 1000 km radius planet)")
+# # plt.show()
