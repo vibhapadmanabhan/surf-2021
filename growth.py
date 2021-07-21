@@ -39,15 +39,18 @@ def convert_moles_to_mass(mol_element, element_molar_mass):
 
 def calculate_mantle_moles(element, mantle_depth, r_body):
     """Returns the amount of Si / V present in the mantle up to a specified depth."""
-    if element == si or element == si_s:
+    if element == si or element == si_s or element == si_s_impactor:
         return convert_mass_to_moles(calculate_element_mass(calculate_shell_vol(mantle_depth, r_body) * rho_mantle, element), molar_mass_si)
-    elif element == v or element == v_s:
+    elif element == v or element == v_s or element == v_s_impactor:
         return convert_mass_to_moles(calculate_element_mass(calculate_shell_vol(mantle_depth, r_body) * rho_mantle, element), molar_mass_v)
     elif element == fe_s:
         return convert_mass_to_moles(calculate_element_mass(calculate_shell_vol(mantle_depth, r_body) * rho_mantle, element), molar_mass_fe)
     elif element == ni_s:
         return convert_mass_to_moles(calculate_element_mass(calculate_shell_vol(mantle_depth, r_body) * rho_mantle, element), molar_mass_ni)
     
+# def scaled_wt_percent(metal, molar_mass_metal, half_ox_no, wt_percent, total_wt_percent):
+#     return 
+
 fO2 = []
 planet_size = []
 
@@ -56,32 +59,39 @@ planet_core_radius = core_radius(r_planet)
 c_impactor = core_radius(r_impactor)
 
 # start with chondritic wt% - (Fe, Ni) in mantle
-v_s = v
-si_s = si
+v_s = v * 100 / (v + si)
+si_s = si * 100 / (v + si)
+si_s_impactor = si_s
+v_s_impactor = v_s
+print(si_s)
 ni_s = 0
 fe_s = 0
 v_metal = 0
 
-for i in range(1000):
+for i in range(10000):
     planet_size.append(r_planet)
     h = calculate_h(melt_factor * calculate_vol(r_impactor), r_planet)
     g_acc = calculate_g(body_mass(r_planet, planet_core_radius))
 
     # calculate compounds already present in mantle up till melted depth
     mol_si = calculate_mantle_moles(si_s, h, r_planet)
-    print("existing", mol_si)
     mol_v = calculate_mantle_moles(v_s, h, r_planet)
     mol_fe_s = calculate_mantle_moles(fe_s, h, r_planet)
     mol_ni_s = calculate_mantle_moles(ni_s, h, r_planet)
 
     # add compounds delivered. This gives total moles of each element in the mantle.
+    # from impactor core
     mol_fe = calculate_total_element_moles(fe, molar_mass_fe, h, r_planet, r_impactor, c_impactor) + mol_fe_s
     mol_ni = calculate_total_element_moles(ni, molar_mass_ni, h, r_planet, r_impactor, c_impactor) + mol_ni_s
-    mol_si += calculate_mantle_moles(si, r_impactor - c_impactor, r_impactor)
-    print("new", mol_si)
-    mol_v += calculate_mantle_moles(v, r_impactor - c_impactor, r_impactor)
+    # from impactor mantle
+    mol_si += calculate_mantle_moles(si_s_impactor, r_impactor - c_impactor, r_impactor)
+    mol_v += calculate_mantle_moles(v_s_impactor, r_impactor - c_impactor, r_impactor)
     mol_o = 2 * mol_si + mol_fe_s + mol_ni_s
     
+    # increase h (account for volume of impactor's mantle)
+    added_mantle_depth = added_depth(r_planet, body_mass(r_impactor, c_impactor), rho_mantle)
+    h += added_mantle_depth
+
     # equilibrium and mass balance
     P_eq = Peq(g_acc, h)
     fe_metal = bisection_search(f, root_bracket(f, mol_fe, mol_ni, mol_si, mol_o, mol_v, P_eq, v_metal), mol_fe, 10e-7, mol_fe, mol_ni, mol_si, mol_o, mol_v, P_eq, v_metal)
@@ -90,16 +100,8 @@ for i in range(1000):
     ni_metal = mol_ni - ni_sil
     si_sil = (mol_o - ni_sil - fe_sil) / 2
     si_metal = mol_si - si_sil
-    print(si_metal, si_sil)
     v_metal = bisection_search(g, 0, root_bracket(g, mol_fe, mol_ni, mol_si, mol_o, mol_v, P_eq, fe_metal), 10e-7, mol_fe, mol_ni, mol_si, mol_o, mol_v, P_eq, fe_metal)
     v_sil = mol_v - v_metal
-
-    # update composition
-    v_s = convert_moles_to_mass(v_sil, molar_mass_v) / ocean_mass(r_planet, h) * 100
-    si_s = convert_moles_to_mass(si_sil, molar_mass_si) / ocean_mass(r_planet, h) * 100
-    print("new wt", si_s)
-    fe_s = convert_moles_to_mass(fe_sil, molar_mass_fe) / ocean_mass(r_planet, planet_core_radius) * 100
-    ni_s = convert_moles_to_mass(ni_sil, molar_mass_ni) / ocean_mass(r_planet, h) * 100
 
     # calculate fugacity
     X_FeO = fe_sil / (v_sil + fe_sil + ni_sil + si_sil)
@@ -108,8 +110,23 @@ for i in range(1000):
 
     # increase planet size
     added_core_mass = convert_moles_to_mass(fe_metal, molar_mass_fe) + convert_moles_to_mass(ni_metal, molar_mass_ni) + convert_moles_to_mass(si_metal, molar_mass_si) + convert_moles_to_mass(v_metal, molar_mass_v)
-    planet_core_radius += added_depth(planet_core_radius, added_core_mass, rho_core)
-    r_planet += added_depth(r_planet, body_mass(r_impactor, c_impactor) - added_core_mass, rho_mantle)
+    added_core_depth = added_depth(planet_core_radius, added_core_mass, rho_core)
+    planet_core_radius += added_core_depth
+    r_planet += added_mantle_depth + added_core_depth
+
+    # update composition
+    v_mantle_mass = convert_moles_to_mass(v_sil, molar_mass_v)
+    si_mantle_mass = convert_moles_to_mass(si_sil, molar_mass_si)
+    ni_mantle_mass = convert_moles_to_mass(ni_sil, molar_mass_ni)
+    fe_mantle_mass = convert_moles_to_mass(fe_sil, molar_mass_fe)
+    o_mantle_mass = convert_moles_to_mass(mol_o, molar_mass_o)
+    mantle_mass = v_mantle_mass + si_mantle_mass + ni_mantle_mass + fe_mantle_mass + o_mantle_mass
+    scale_factor = ocean_mass(r_planet, h) / mantle_mass
+    v_s = scale_factor * v_mantle_mass / ocean_mass(r_planet, h) * 100
+    si_s = scale_factor * si_mantle_mass / ocean_mass(r_planet, h) * 100
+    fe_s = scale_factor * fe_mantle_mass / ocean_mass(r_planet, h) * 100
+    ni_s = scale_factor * ni_mantle_mass / ocean_mass(r_planet, h) * 100
+
 
 plt.plot([r / 1e3 for r in planet_size], fO2)
 plt.xlabel("Planet radius (km)")
