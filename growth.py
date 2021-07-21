@@ -62,13 +62,14 @@ ni_s = 0
 fe_s = 0
 v_metal = 0
 
-for i in range(10):
+for i in range(1000):
     planet_size.append(r_planet)
     h = calculate_h(melt_factor * calculate_vol(r_impactor), r_planet)
     g_acc = calculate_g(body_mass(r_planet, planet_core_radius))
 
-    # calculate compounds already present in mantle
+    # calculate compounds already present in mantle up till melted depth
     mol_si = calculate_mantle_moles(si_s, h, r_planet)
+    print("existing", mol_si)
     mol_v = calculate_mantle_moles(v_s, h, r_planet)
     mol_fe_s = calculate_mantle_moles(fe_s, h, r_planet)
     mol_ni_s = calculate_mantle_moles(ni_s, h, r_planet)
@@ -77,6 +78,7 @@ for i in range(10):
     mol_fe = calculate_total_element_moles(fe, molar_mass_fe, h, r_planet, r_impactor, c_impactor) + mol_fe_s
     mol_ni = calculate_total_element_moles(ni, molar_mass_ni, h, r_planet, r_impactor, c_impactor) + mol_ni_s
     mol_si += calculate_mantle_moles(si, r_impactor - c_impactor, r_impactor)
+    print("new", mol_si)
     mol_v += calculate_mantle_moles(v, r_impactor - c_impactor, r_impactor)
     mol_o = 2 * mol_si + mol_fe_s + mol_ni_s
     
@@ -88,15 +90,16 @@ for i in range(10):
     ni_metal = mol_ni - ni_sil
     si_sil = (mol_o - ni_sil - fe_sil) / 2
     si_metal = mol_si - si_sil
+    print(si_metal, si_sil)
     v_metal = bisection_search(g, 0, root_bracket(g, mol_fe, mol_ni, mol_si, mol_o, mol_v, P_eq, fe_metal), 10e-7, mol_fe, mol_ni, mol_si, mol_o, mol_v, P_eq, fe_metal)
     v_sil = mol_v - v_metal
 
-    # update mantle composition
-    v_s = convert_moles_to_mass(v_sil, molar_mass_v) / body_mass(r_planet, planet_core_radius) * 100
-    si_s = convert_moles_to_mass(si_sil, molar_mass_si) / body_mass(r_planet, planet_core_radius) * 100
-    fe_s = convert_moles_to_mass(fe_sil, molar_mass_fe) / body_mass(r_planet, planet_core_radius) * 100
-    print(fe_s)
-    ni_s = convert_moles_to_mass(ni_sil, molar_mass_ni) / body_mass(r_planet, planet_core_radius) * 100
+    # update composition
+    v_s = convert_moles_to_mass(v_sil, molar_mass_v) / ocean_mass(r_planet, h) * 100
+    si_s = convert_moles_to_mass(si_sil, molar_mass_si) / ocean_mass(r_planet, h) * 100
+    print("new wt", si_s)
+    fe_s = convert_moles_to_mass(fe_sil, molar_mass_fe) / ocean_mass(r_planet, planet_core_radius) * 100
+    ni_s = convert_moles_to_mass(ni_sil, molar_mass_ni) / ocean_mass(r_planet, h) * 100
 
     # calculate fugacity
     X_FeO = fe_sil / (v_sil + fe_sil + ni_sil + si_sil)
