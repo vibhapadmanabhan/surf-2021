@@ -30,6 +30,9 @@ def core_radius(body_radius):
 def planet_mass(r_planet, core_radius):
     return 4 / 3 * math.pi * (core_radius**3 * rho_core + (r_planet - core_radius)**3 * rho_mantle)
 
+def ocean_mass(r_planet, depth):
+    return 4 / 3 * math.pi * (r_planet ** 3 - (r_planet - depth)**3) * rho_mantle
+
 def convert_moles_to_mass(mol_element, element_molar_mass):
     """Returns the mass in kg of an element given its molar mass and number of moles."""
     return mol_element * element_molar_mass / 1000
@@ -51,29 +54,29 @@ c_impactor = core_radius(r_impactor)
 v_planet = v
 si_planet = si
 
-for i in range(10000):
+
+for i in range(10):
     planet_size.append(r_planet)
     h = calculate_h(melt_factor * calculate_vol(r_impactor), r_planet)
     g_acc = calculate_g(planet_mass(r_planet, planet_core_radius))
-    
+    print(g_acc)
     # mol_fe_s = calculate_total_element_moles(fe_s, molar_mass_fe + molar_mass_o, h, r_planet, r_impactor, c_impactor)
 
     # the planet melts. calculate moles of freed Si, V in planet's mantle
     mol_si = calculate_mantle_moles(si_planet, calculate_h(melt_factor * calculate_vol(r_impactor), r_planet), r_planet)
 
     # change the wt% of Si
-    si_planet = convert_moles_to_mass(mol_si, molar_mass_si) / planet_mass(r_planet, planet_core_radius) * 100
+    si_planet = convert_moles_to_mass(mol_si, molar_mass_si) / ocean_mass(r_planet, h) * 100
 
     # same for V
     mol_v = calculate_mantle_moles(v_planet, calculate_h(melt_factor * calculate_vol(r_impactor), r_planet), r_planet)
 
     # change the wt% of V
-    v_planet = convert_moles_to_mass(mol_v, molar_mass_v) / planet_mass(r_planet, planet_core_radius) * 100
+    v_planet = convert_moles_to_mass(mol_v, molar_mass_v) / ocean_mass(r_planet, h) * 100
 
     # delivered moles
     # Fe and Ni from core of impactor
     mol_fe = calculate_total_element_moles(fe, molar_mass_fe, h, r_planet, r_impactor, c_impactor)
-
     mol_ni = calculate_total_element_moles(ni, molar_mass_ni, h, r_planet, r_impactor, c_impactor)
 
     # Si and V from mantle of impactor
@@ -85,7 +88,7 @@ for i in range(10000):
     mol_o = 2 * mol_si
     
     P_eq = Peq(g_acc, h)
-
+    # print(P_eq)
     fe_metal = bisection_search(f, root_bracket(f, mol_fe, mol_ni, mol_si, mol_o, mol_v, P_eq, v_metal), mol_fe, 10e-7, mol_fe, mol_ni, mol_si, mol_o, mol_v, P_eq, v_metal)
 
     fe_sil = mol_fe - fe_metal
@@ -114,4 +117,3 @@ plt.xlabel("Planet radius (km)")
 plt.ylabel("ln(fO2) - IW")
 plt.title("Fugacity vs. planet radius")
 plt.show()
-print(fO2[-10:])
