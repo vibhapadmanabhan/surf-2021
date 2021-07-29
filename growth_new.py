@@ -35,7 +35,7 @@ delivered_si = 1000 * si_s * 0.01 * ocean_mass(r_impactor, r_impactor - c_impact
 delivered_mg = 1000 * mg_s * 0.01 * ocean_mass(r_impactor, r_impactor - c_impactor) / (molar_mass_mg + molar_mass_o)
 delivered_v = 1000 * v_s * 0.01 * ocean_mass(r_impactor, r_impactor - c_impactor) / (molar_mass_v * 2 + 3 * molar_mass_o)
 
-for i in range(3):
+for i in range(10):
     print(i)
     planet_size.append(r_planet)
     h = calculate_h(melt_factor * calculate_vol(r_impactor), r_planet)
@@ -58,7 +58,7 @@ for i in range(3):
     mol_mg_MO += delivered_mg
     mol_fe_MO = mol_FeO_MO + delivered_fe
     mol_o_MO = 2 * mol_si_MO + mol_FeO_MO + mol_ni_MO + mol_mg_MO
-    
+    mol_mg += delivered_mg
     # increase h (account for volume of impactor's mantle)
     added_mantle_depth = added_depth(r_planet, body_mass(r_impactor, c_impactor), rho_mantle)
     h += added_mantle_depth
@@ -71,7 +71,7 @@ for i in range(3):
     actual_kd_ni = calculate_kd("ni", T_cmb, P_eq, 1.06, 1553, -98)
     ni_sil = mol_ni_MO * fe_sil / (fe_sil + actual_kd_ni * fe_metal)
     ni_metal = mol_ni_MO - ni_sil
-    si_sil = (mol_o_MO - ni_sil - fe_sil - mol_mg) / 2
+    si_sil = (mol_o_MO - ni_sil - fe_sil - mol_mg_MO) / 2
     si_metal = mol_si_MO - si_sil
     v_metal = bisection_search(g, 0, root_bracket(g, fe_sil, ni_sil, si_sil, mol_o_MO, mol_v_MO, mol_mg_MO, P_eq, fe_metal), 10e-7, mol_fe_MO, mol_ni_MO, mol_si_MO, mol_o_MO, mol_v_MO, mol_mg_MO, P_eq, fe_metal)
     v_sil = mol_v_MO - v_metal
@@ -89,12 +89,12 @@ for i in range(3):
     planet_core_radius += added_core_depth
     r_planet += added_mantle_depth + added_core_depth
 
-    mol_fe += fe_sil - fe_metal
+    mol_fe += fe_sil - fe_metal - mol_fe * h_frac
     print("fe in mantle after equilibrium", mol_fe)
-    mol_ni += ni_sil - ni_metal
-    mol_si += si_sil - si_metal
+    mol_ni += ni_sil - ni_metal - mol_ni * h_frac
+    mol_si += si_sil - si_metal - mol_si * h_frac
     # print(si_metal / mol_si)
-    mol_v += v_sil - v_metal
+    mol_v += v_sil - v_metal - mol_v * h_frac
     # print(mol_fe, mol_ni, mol_si, mol_v, mol_mg)
     X_FeO = mol_fe / (mol_fe + mol_ni + mol_si + mol_v * 2 + mol_mg)
     #print(X_FeO)
