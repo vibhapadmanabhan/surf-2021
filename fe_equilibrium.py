@@ -97,6 +97,7 @@ def f(fe_metal, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, v_metal):
     conc_si_sil = si_sil / (si_sil + fe_sil + ni_sil + (mol_v - v_metal) + mol_mg)
     conc_fe_metal = fe_metal / (fe_metal + ni_metal + si_metal + v_metal)
     conc_fe_sil = fe_sil / (fe_sil + ni_sil + si_sil + (mol_v - v_metal) + mol_mg)
+    # print(conc_si_metal * conc_fe_sil**2 / conc_si_sil / conc_fe_metal**2 - actual_kd_si)
     return  conc_si_metal * conc_fe_sil**2 / conc_si_sil / conc_fe_metal**2 - actual_kd_si
 
 
@@ -119,14 +120,12 @@ def g(v_metal, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, fe_metal):
 
 
 def root_bracket(func, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, aux):
-    """Finds the lower/upper bound of an interval that can be used for the bisection search.
-    
-    When used to calculate fe_metal from kd(Si-Fe) the last argument is not needed."""
+    """Finds the lower/upper bound of an interval that can be used for the bisection search."""
     if func == f:
         val = 1
         FB = func(mol_fe, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, aux)
         while val <= mol_fe and FB * f(val, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, aux) > 0:
-            val *= 1.2  # multiply by small enough number for root to be found
+            val *= 1.0001  # multiply by small enough number for root to be found
         return val
     elif func == g:
         val = 1e-6
