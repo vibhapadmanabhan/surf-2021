@@ -3,10 +3,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # constants
-r_planet = 1000 * 1E3 # m
+r_planet = 4500 * 1E3 # m
 rho_mantle = 3000
 rho_core = 8000
-P_eq = 0.7 * 25 # in GPa, assuming P_eq = 0.7 * P_cmb. CMB pressure depends on size of the planet.
+# P_eq = 0.7 * 25 # in GPa, assuming P_eq = 0.7 * P_cmb. CMB pressure depends on size of the planet.
 T_cmb = 4000
 
 # Mantle composition: chondritic, in wt%, ignoring trace elements and Ni, Fe.
@@ -78,25 +78,27 @@ def calculate_kd(metal, T, P, a, b, c):
 
 
 # actual distribution constants from Rubie
-actual_kd_si = calculate_kd("si", T_cmb, P_eq, 2.98, -15934, None)
-actual_kd_ni = calculate_kd("ni", T_cmb, P_eq, 1.06, 1553, -98)
-actual_kd_v = calculate_kd("v", T_cmb, P_eq, -0.48, -5063, 0)
+# actual_kd_si = calculate_kd("si", T_cmb, P_eq, 2.98, -15934, None)
+# actual_kd_ni = calculate_kd("ni", T_cmb, P_eq, 1.06, 1553, -98)
+# actual_kd_v = calculate_kd("v", T_cmb, P_eq, -0.48, -5063, 0)
 
 def f(fe_metal, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, v_metal):
     """
     Returns the difference between the actual value of K_d(Si-Fe) and calculated value for K_d(Si-Fe). (Root of function will be found at the 
     correct value of K_d)
     """
+    actual_kd_ni = calculate_kd("ni", T_cmb, P_eq, 1.06, 1553, -98)
     actual_kd_si = calculate_kd("si", T_cmb, P_eq, 2.98, -15934, None)
     fe_sil = mol_fe - fe_metal
     ni_sil = mol_ni * fe_sil / (fe_sil + actual_kd_ni * fe_metal)
     ni_metal = mol_ni - ni_sil
     si_sil = (mol_o - ni_sil - fe_sil - mol_mg) / 2  # ignore mass of V oxides
+    # print(si_sil)
     si_metal = mol_si - si_sil
     conc_si_metal = si_metal / (si_metal + fe_metal + ni_metal + v_metal)
-    conc_si_sil = si_sil / (si_sil + fe_sil + ni_sil + (mol_v - v_metal) + mol_mg)
+    conc_si_sil = si_sil / (si_sil + fe_sil + ni_sil + (mol_v - v_metal) + mol_mg + mol_o)
     conc_fe_metal = fe_metal / (fe_metal + ni_metal + si_metal + v_metal)
-    conc_fe_sil = fe_sil / (fe_sil + ni_sil + si_sil + (mol_v - v_metal) + mol_mg)
+    conc_fe_sil = fe_sil / (fe_sil + ni_sil + si_sil + (mol_v - v_metal) + mol_mg + mol_o)
     # print(conc_si_metal * conc_fe_sil**2 / conc_si_sil / conc_fe_metal**2 - actual_kd_si)
     return  conc_si_metal * conc_fe_sil**2 / conc_si_sil / conc_fe_metal**2 - actual_kd_si
 
@@ -106,32 +108,36 @@ def g(v_metal, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, fe_metal):
     Returns the difference between the actual value of K_d(V-Fe) and calculated value for K_d(V-Fe). (Root of function will be found at the 
     correct value of K_d)
     """
+    # print("values", mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg)
+    actual_kd_ni = calculate_kd("ni", T_cmb, P_eq, 1.06, 1553, -98)
     actual_kd_v = calculate_kd("v", T_cmb, P_eq, -0.48, -5063, 0)
     fe_sil = mol_fe - fe_metal
     ni_sil = mol_ni * fe_sil / (fe_sil + actual_kd_ni * fe_metal)
     ni_metal = mol_ni - ni_sil
     si_sil = (mol_o - ni_sil - fe_sil - mol_mg) / 2  # ignore mass of V oxides
+    # print("g values", fe_sil, si_sil, ni_sil)
     si_metal = mol_si - si_sil
     conc_v_metal = v_metal / (si_metal + fe_metal + ni_metal + v_metal)
-    conc_v_sil = (mol_v - v_metal) / (si_sil + fe_sil + ni_sil + mol_v - v_metal + mol_mg)
+    conc_v_sil = (mol_v - v_metal) / (si_sil + fe_sil + ni_sil + mol_v - v_metal + mol_mg + mol_o)
     conc_fe_metal = fe_metal / (fe_metal + ni_metal + si_metal + v_metal)
-    conc_fe_sil = fe_sil / (fe_sil + ni_sil + si_sil + mol_v - v_metal + mol_mg)
+    conc_fe_sil = fe_sil / (fe_sil + ni_sil + si_sil + mol_v - v_metal + mol_mg + mol_o)
     return  conc_v_metal * conc_fe_sil**(3 / 2) / conc_v_sil / conc_fe_metal**(3 / 2) - actual_kd_v
 
 
 def root_bracket(func, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, aux):
     """Finds the lower/upper bound of an interval that can be used for the bisection search."""
     if func == f:
-        val = 1
+        val = mol_fe
         FB = func(mol_fe, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, aux)
-        while val <= mol_fe and FB * f(val, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, aux) > 0:
-            val *= 1.0001  # multiply by small enough number for root to be found
+        while val > 0 and FB * f(val, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, aux) > 0:
+            val /= 1.0001  # multiply by small enough number for root to be found
         return val
     elif func == g:
         val = 1e-6
         FA = g(0, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, aux)
         while val <= mol_v and FA * g(val, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, aux) > 0:
             val *= 1.01
+            # print(val)
         return val
 
 
