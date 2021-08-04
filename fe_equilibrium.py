@@ -7,7 +7,7 @@ r_planet = 4500 * 1E3 # m
 rho_mantle = 3000
 rho_core = 8000
 # P_eq = 0.7 * 25 # in GPa, assuming P_eq = 0.7 * P_cmb. CMB pressure depends on size of the planet.
-T_cmb = 4000
+T_cmb = 2000
 
 # Mantle composition: chondritic, in wt%, ignoring trace elements and Ni, Fe.
 si = 10.7
@@ -90,15 +90,16 @@ def f(fe_metal, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, v_metal):
     actual_kd_ni = calculate_kd("ni", T_cmb, P_eq, 1.06, 1553, -98)
     actual_kd_si = calculate_kd("si", T_cmb, P_eq, 2.98, -15934, None)
     fe_sil = mol_fe - fe_metal
+    # print("fe sil from f",fe_sil)
     ni_sil = mol_ni * fe_sil / (fe_sil + actual_kd_ni * fe_metal)
     ni_metal = mol_ni - ni_sil
     si_sil = (mol_o - ni_sil - fe_sil - mol_mg) / 2  # ignore mass of V oxides
     # print(si_sil)
     si_metal = mol_si - si_sil
     conc_si_metal = si_metal / (si_metal + fe_metal + ni_metal + v_metal)
-    conc_si_sil = si_sil / (si_sil + fe_sil + ni_sil + (mol_v - v_metal) + mol_mg + mol_o)
+    conc_si_sil = si_sil / (si_sil + fe_sil + ni_sil + (mol_v - v_metal) + mol_mg)
     conc_fe_metal = fe_metal / (fe_metal + ni_metal + si_metal + v_metal)
-    conc_fe_sil = fe_sil / (fe_sil + ni_sil + si_sil + (mol_v - v_metal) + mol_mg + mol_o)
+    conc_fe_sil = fe_sil / (fe_sil + ni_sil + si_sil + (mol_v - v_metal) + mol_mg)
     # print(conc_si_metal * conc_fe_sil**2 / conc_si_sil / conc_fe_metal**2 - actual_kd_si)
     return  conc_si_metal * conc_fe_sil**2 / conc_si_sil / conc_fe_metal**2 - actual_kd_si
 
@@ -112,15 +113,18 @@ def g(v_metal, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, fe_metal):
     actual_kd_ni = calculate_kd("ni", T_cmb, P_eq, 1.06, 1553, -98)
     actual_kd_v = calculate_kd("v", T_cmb, P_eq, -0.48, -5063, 0)
     fe_sil = mol_fe - fe_metal
+    # print("fe sil", fe_sil)
     ni_sil = mol_ni * fe_sil / (fe_sil + actual_kd_ni * fe_metal)
     ni_metal = mol_ni - ni_sil
     si_sil = (mol_o - ni_sil - fe_sil - mol_mg) / 2  # ignore mass of V oxides
     # print("g values", fe_sil, si_sil, ni_sil)
     si_metal = mol_si - si_sil
     conc_v_metal = v_metal / (si_metal + fe_metal + ni_metal + v_metal)
-    conc_v_sil = (mol_v - v_metal) / (si_sil + fe_sil + ni_sil + mol_v - v_metal + mol_mg + mol_o)
+    conc_v_sil = (mol_v - v_metal) / (si_sil + fe_sil + ni_sil + (mol_v - v_metal)  * 2 + mol_mg)
+    # print("conc v metal, conc v sil", conc_v_metal, conc_v_sil)
     conc_fe_metal = fe_metal / (fe_metal + ni_metal + si_metal + v_metal)
-    conc_fe_sil = fe_sil / (fe_sil + ni_sil + si_sil + mol_v - v_metal + mol_mg + mol_o)
+    conc_fe_sil = fe_sil / (fe_sil + ni_sil + si_sil + mol_v - v_metal + mol_mg)
+    # print("conc fe metal, conc_fe sil", conc_fe_metal, conc_fe_sil)
     return  conc_v_metal * conc_fe_sil**(3 / 2) / conc_v_sil / conc_fe_metal**(3 / 2) - actual_kd_v
 
 
