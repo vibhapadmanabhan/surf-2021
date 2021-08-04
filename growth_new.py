@@ -51,7 +51,7 @@ mols_fe_c = 1000 * fe * 0.01 * calculate_vol(planet_core_radius) * rho_core / mo
 # while r_planet <= 130e3:
 for i in range(100):
     planet_size.append(r_planet)
-    r_impactor = 1e3
+    r_impactor = 10e3
     c_impactor = core_radius(r_impactor)
     delivered_fe = 1000 * fe * 0.01 * calculate_vol(c_impactor) * rho_core / molar_mass_fe
     delivered_fe_s = fe_s * 0.01 * ocean_mass(r_impactor, r_impactor - c_impactor) * 1000 / (molar_mass_fe)
@@ -89,10 +89,10 @@ for i in range(100):
     mol_o += delivered_o
     
     # equilibrium and mass balance
-    P_eq = 20 
-    print("pressure", Peq(g_acc, h)) # small error due to exclusion of delta h from volume of impactor mantle (does not change results)
+    P_eq = Peq(g_acc, h)
+    # small error due to exclusion of delta h from volume of impactor mantle (does not change results)
     # print("pressure", P_eq)
-    fe_metal = bisection_search(f, root_bracket(f, mol_fe_MO, mol_ni_MO, mol_si_MO, mol_o_MO, mol_v_MO, mol_mg_MO, P_eq, v_metal), mol_fe_MO, 10e-10, mol_fe_MO, mol_ni_MO, mol_si_MO, mol_o_MO, mol_v_MO, mol_mg_MO, P_eq, v_metal)
+    fe_metal = bisection_search(f, root_bracket(f, mol_fe_MO, mol_ni_MO, mol_si_MO, mol_o_MO, mol_v_MO, mol_mg_MO, P_eq, v_metal), mol_fe_MO, 10e-7, mol_fe_MO, mol_ni_MO, mol_si_MO, mol_o_MO, mol_v_MO, mol_mg_MO, P_eq, v_metal)
     print(fe_metal)
     fe_sil = mol_fe_MO - fe_metal
     # both K_eq are decreasing
@@ -103,8 +103,10 @@ for i in range(100):
     ni_metal = mol_ni_MO - ni_sil
     si_sil = (mol_o_MO - ni_sil - fe_sil - mol_mg_MO) / 2
     si_metal = mol_si_MO - si_sil
-    v_metal = bisection_search(g, 0, root_bracket(g, fe_sil, ni_sil, si_sil, mol_o_MO, mol_v_MO, mol_mg_MO, P_eq, fe_metal), 10e-10, mol_fe_MO, mol_ni_MO, mol_si_MO, mol_o_MO, mol_v_MO, mol_mg_MO, P_eq, fe_metal)
+    print("all values", fe_metal, fe_sil, ni_metal, ni_sil, si_metal, si_sil)
+    v_metal = bisection_search(g, 0, root_bracket(g, mol_fe_MO, mol_ni_MO, mol_si_MO, mol_o_MO, mol_v_MO, mol_mg_MO, P_eq, fe_metal), 10e-7, mol_fe_MO, mol_ni_MO, mol_si_MO, mol_o_MO, mol_v_MO, mol_mg_MO, P_eq, fe_metal)
     v_sil = mol_v_MO - v_metal
+    print("vanadium", v_metal, v_sil)
 
     # add moles in metal phase to total moles of each element in the core
     mols_fe_c += fe_metal
@@ -137,8 +139,8 @@ for i in range(100):
     mol_v += v_sil - mol_v * h_frac
 
     # calculate fugacity
-    X_FeO = mol_fe / (mol_fe + mol_ni + mol_si + mol_v / 2 + mol_mg + mol_o)
-    print("XFeo", X_FeO)
+    X_FeO = mol_fe / (mol_fe + mol_ni + mol_si + mol_v / 2 + mol_mg)
+    # print("XFeo", X_FeO)
     X_Fe = mols_fe_c / (mols_fe_c + mols_si_c + mols_ni_c + mols_v_c)
     print(X_Fe)
     fO2.append(calculate_ln_o_iw_fugacity(X_FeO, X_Fe))
