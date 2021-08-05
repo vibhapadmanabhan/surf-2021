@@ -2,9 +2,40 @@ from fe_equilibrium import *
 
 # knowns
 r_planet = 100 * 1e3
-r_impactor = 10 * 1e3
 melt_factor = 10
 k = 3.926763924239811e-12 # using Mars' mass-g relationship
+
+# starting mantle composition of oxygen-free elements, and oxygen, in wt% (assuming FeO is 8 wt%, MgO is 46 wt%, SiO2 is 54 - 0.00606 wt%)
+fe_s = 6.218
+mg_s = 27.737
+si_s = 25.19
+ni_s = 0
+v_s = 0.004119
+o_s = 100 - fe_s - mg_s - si_s - ni_s - v_s
+
+# starting core composition in wt%
+fe = 85
+ni = 15
+si = 0
+v = 0
+mg = 0
+
+# lists 
+X_FeO = []
+X_Si = []
+X_Ni = []
+X_Fe = []
+X_Va = []
+X_VO = []
+X_SiO2 = []
+X_NiO = []
+X_FeO = []
+gravity = []
+pressure = []
+temperature = []
+mantle_depth = []
+fO2 = []
+planet_size = []
 
 def calculate_g(M_p):
     """Calculate gravitational acceleration using g ~ M_p^(0.503) and M_Mars = 6.39e23 kg, g_Mars = 3.7 m / s"""
@@ -36,135 +67,62 @@ def convert_moles_to_mass(mol_element, element_molar_mass):
     """Returns the mass in kg of an element given its molar mass and number of moles."""
     return mol_element * element_molar_mass / 1000
 
-def calculate_mantle_moles(element, mantle_depth, r_body):
-    """Returns the amount of Si / V present in the mantle up to a specified depth."""
-    if element == si or element == si_s or element == si_s_impactor:
-        return convert_mass_to_moles(calculate_element_mass(calculate_shell_vol(mantle_depth, r_body) * rho_mantle, element), molar_mass_si + molar_mass_o * 2)
-    elif element == v or element == v_s or element == v_s_impactor:
-        return convert_mass_to_moles(calculate_element_mass(calculate_shell_vol(mantle_depth, r_body) * rho_mantle, element), molar_mass_v * 2 + molar_mass_o * 3)
-    elif element == fe_s:
-        return convert_mass_to_moles(calculate_element_mass(calculate_shell_vol(mantle_depth, r_body) * rho_mantle, element), molar_mass_fe + molar_mass_o)
-    elif element == ni_s:
-        return convert_mass_to_moles(calculate_element_mass(calculate_shell_vol(mantle_depth, r_body) * rho_mantle, element), molar_mass_ni + molar_mass_o)
-    elif element == mg_s or element == mg_s_impactor:
-        return convert_mass_to_moles(calculate_element_mass(calculate_shell_vol(mantle_depth, r_body) * rho_mantle, element), molar_mass_mg + molar_mass_o)
-
 def Teq(Peq):
-    return 0.4 * 1661.2 * (Peq / 1.336 / 10**9 + 1)**(1 / 7.437)
+    return 0.4 * 1661.2 * (Peq / 1.336 / 10**9 + 1)**(1 / 7.437) + 0.6 * 1982.1 * (Peq / 6.594 / 1e9 + 1)**(1 / 5.374)
+
+def save_data(X_FeO, X_Fe, X_SiO2, X_Si, X_Va, X_V2O3, X_Ni, X_NiO, pressure, temperature, gravity, planet_size, fO2, mantle_depth):
+    with open("X_FeO.txt", "w") as f:
+        for val in X_FeO:
+            f.write("%s\n" % val)
+
+    with open("X_Fe.txt", "w") as f:
+        for val in X_Fe:
+            f.write("%s\n" % val)
+
+    with open("X_Va.txt", "w") as f:
+        for val in X_Va:
+            f.write("%s\n" % val)
+
+    with open("X_V2O3.txt", "w") as f:
+        for val in X_V2O3:
+            f.write("%s\n" % val)
+
+    with open("X_Ni.txt", "w") as f:
+        for val in X_Ni:
+            f.write("%s\n" % val)
+
+    with open("X_NiO.txt", "w") as f:
+        for val in X_NiO:
+            f.write("%s\n" % val)
+
+    with open("X_SiO2.txt", "w") as f:
+        for val in X_SiO2:
+            f.write("%s\n" % val)
+
+    with open("X_Si.txt", "w") as f:
+        for val in X_Si:
+            f.write("%s\n" % val)
+
+    with open("temperature.txt", "w") as f:
+        for val in temperature:
+            f.write("%s\n" % val)
+
+    with open("pressure.txt", "w") as f:
+        for val in pressure:
+            f.write("%s\n" % val)
+
+    with open("gravity.txt", "w") as f:
+        for val in gravity:
+            f.write("%s\n" % val)
+
+    with open("h.txt", "w") as f:
+        for val in mantle_depth:
+            f.write("%s\n" % val)
     
-# def scaled_wt_percent(metal, molar_mass_metal, half_ox_no, wt_percent, total_wt_percent):
-#     return 
+    with open("planet_size.txt", "w") as f:
+        for val in planet_size:
+            f.write("%s\n" % val)
 
-fO2 = []
-planet_size = []
-
-# initial core radii
-planet_core_radius = core_radius(r_planet)
-c_impactor = core_radius(r_impactor)
-
-# start with chondritic wt% - (Fe, Ni) in mantle
-# fe_s = 0
-# mg = 9.54
-
-# # find the number of moles of each el
-# molar_conc_fe_m = ocean_mass(r_planet, r_planet - planet_core_radius)
-# # convert to weight percents of oxides and scale to make up entire mass
-# MgO = mg / molar_mass_mg * (molar_mass_mg + molar_mass_o)
-# SiO2 = si / molar_mass_si * (molar_mass_mg + 2 * molar_mass_o)
-# V2O3 = v / molar_mass_v * (molar_mass_v * 2 + molar_mass_o * 3)
-# # FeO = fe_s / molar_mass_fe * (molar_mass_fe + molar_mass_o)
-# v_s = V2O3 * 100 / (V2O3 + SiO2 + MgO + fe_s)
-# si_s = SiO2 * 100 / (V2O3 + SiO2 + fe_s + MgO)
-# mg_s = MgO * 100 / (V2O3 + SiO2 + fe_s + MgO)
-# fe_s = fe_s * 100 / (V2O3 + SiO2 + fe_s + MgO)
-# ni_s = 0
-# # copy variables for these wt% being used in impactors
-# si_s_impactor = si_s
-# v_s_impactor = v_s
-# mg_s_impactor = mg_s
-# fe_s_impactor = fe_s
-
-v_metal = 0
-X_FeO = []
-X_Si = []
-X_Va = []
-
-# for i in range(3):
-#     planet_size.append(r_planet)
-#     h = calculate_h(melt_factor * calculate_vol(r_impactor), r_planet)
-#     g_acc = calculate_g(body_mass(r_planet, planet_core_radius))
-#     # calculate compounds already present in mantle up till melted depth
-#     mol_si = calculate_mantle_moles(si_s, h, r_planet)
-#     mol_v = calculate_mantle_moles(v_s, h, r_planet)
-#     mol_fe_s = calculate_mantle_moles(fe_s, h, r_planet)
-#     mol_ni_s = calculate_mantle_moles(ni_s, h, r_planet)
-#     mol_mg = calculate_mantle_moles(mg_s, h, r_planet)
-#     print("planet mass before collision", body_mass(r_planet, planet_core_radius))
-#     # print("impactor mass", body_mass(r_impactor, c_impactor))
-#     print("total mass before collision", body_mass(r_planet, planet_core_radius) + body_mass(r_impactor, c_impactor))
-#     # add compounds delivered. This gives total moles of each element in the mantle.
-#     # from impactor core
-#     mol_fe = calculate_total_element_moles(fe, molar_mass_fe, h, r_planet, r_impactor, c_impactor) + mol_fe_s
-#     mol_ni = calculate_total_element_moles(ni, molar_mass_ni, h, r_planet, r_impactor, c_impactor) + mol_ni_s
-#     # from impactor mantle
-#     mol_si += calculate_mantle_moles(si_s_impactor, r_impactor - c_impactor, r_impactor)
-#     mol_v += calculate_mantle_moles(v_s_impactor, r_impactor - c_impactor, r_impactor)
-#     mol_mg += calculate_mantle_moles(mg_s_impactor, r_impactor - c_impactor, r_impactor)
-#     mol_o = 2 * mol_si + mol_fe_s + mol_ni_s + mol_mg
-#     print("total mass from calculated element moles", convert_moles_to_mass(mol_fe, molar_mass_fe) + convert_moles_to_mass(mol_ni, molar_mass_ni) + convert_moles_to_mass(mol_v, molar_mass_v) + convert_moles_to_mass(mol_si, molar_mass_si) + convert_moles_to_mass(mol_o, molar_mass_o))
-    
-#     # increase h (account for volume of impactor's mantle)
-#     added_mantle_depth = added_depth(r_planet, body_mass(r_impactor, c_impactor), rho_mantle)
-#     h += added_mantle_depth
-#     # print("depth melted", h)
-#     # print("gravity", g_acc)
-#     # equilibrium and mass balance
-#     P_eq = Peq(g_acc, h) # * 10
-#     # print(P_eq)
-#     # T_cmb = Teq(P_eq)
-#     fe_metal = bisection_search(f, root_bracket(f, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, v_metal), mol_fe, 10e-10, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, v_metal)
-#     # print(fe_metal / mol_fe)
-#     fe_sil = mol_fe - fe_metal
-#     ni_sil = mol_ni * fe_sil / (fe_sil + actual_kd_ni * fe_metal)
-#     ni_metal = mol_ni - ni_sil
-#     si_sil = (mol_o - ni_sil - fe_sil - mol_mg) / 2
-#     si_metal = mol_si - si_sil
-#     # print(root_bracket(g, mol_fe, mol_ni, mol_si, mol_o, mol_v, P_eq, fe_metal))
-#     v_metal = bisection_search(g, 0, root_bracket(g, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, fe_metal), 10e-7, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, fe_metal)
-#     v_sil = mol_v - v_metal
-
-#     # calculate fugacity
-#     X_FeO = fe_sil / (v_sil + fe_sil + ni_sil + si_sil + mol_mg)
-#     X_Fe = fe_metal / (fe_metal + v_metal + ni_metal + si_metal)
-#     X_Si.append(si_metal / (fe_metal + v_metal + ni_metal + si_metal))
-#     fO2.append(calculate_ln_o_iw_fugacity(X_FeO, X_Fe))
-#     # print(X_FeO / (X_Fe + X_FeO))
-#     # increase planet size
-#     added_core_mass = convert_moles_to_mass(fe_metal, molar_mass_fe) + convert_moles_to_mass(ni_metal, molar_mass_ni) + convert_moles_to_mass(si_metal, molar_mass_si) + convert_moles_to_mass(v_metal, molar_mass_v)
-#     added_core_depth = added_depth(planet_core_radius, added_core_mass, rho_core)
-#     planet_core_radius += added_core_depth
-#     r_planet += added_mantle_depth + added_core_depth
-
-#     # update composition
-#     v_mantle_mass = convert_moles_to_mass(v_sil, molar_mass_v * 2 + molar_mass_o * 3)
-#     si_mantle_mass = convert_moles_to_mass(si_sil, molar_mass_si + molar_mass_o * 2)
-#     ni_mantle_mass = convert_moles_to_mass(ni_sil, molar_mass_ni + molar_mass_o)
-#     fe_mantle_mass = convert_moles_to_mass(fe_sil, molar_mass_fe + molar_mass_o)
-#     mg_mantle_mass = convert_moles_to_mass(mol_mg, molar_mass_mg + molar_mass_o)
-#     mantle_mass = v_mantle_mass + si_mantle_mass + ni_mantle_mass + fe_mantle_mass + mg_mantle_mass
-#     scale_factor = ocean_mass(r_planet, h) / mantle_mass
-#     v_s = scale_factor * v_mantle_mass / mantle_mass * 100
-#     si_s = scale_factor * si_mantle_mass / mantle_mass * 100
-#     # print(si_s)
-#     fe_s = scale_factor * fe_mantle_mass / mantle_mass * 100
-#     # print(fe_s)
-#     ni_s = scale_factor * ni_mantle_mass / mantle_mass * 100
-#     mg_s = scale_factor * mg_mantle_mass / mantle_mass * 100
-#     # print(mg_s + v_s + fe_s + ni_s + si_s)
-#     print("planet mass after collision", body_mass(r_planet, planet_core_radius))
-
-# plt.plot([r / 1e3 for r in planet_size], fO2)
-# plt.xlabel("Planet radius (km)")
-# plt.ylabel("ln(fO2) - IW")
-# plt.title("Fugacity vs. planet radius")
-# plt.show()
+    with open("fO2.txt", "w") as f:
+        for val in fO2:
+            f.write("%s\n" % val)
