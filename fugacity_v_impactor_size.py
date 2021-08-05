@@ -1,20 +1,18 @@
-from fe_equilibrium import *
+from equilibrium import *
 """Generates a plot of fO2-IW w.r.t impactor radius. 
-Mantle composition: 10.7 wt% Si, 0 wt% Fe."""
-r_impactor = [i * 10 * 1e3 for i in range(1, 98)]
+Mantle composition: 10.7 wt% Si, 0 wt% Fe, 0% Mg, 0% V."""
+r_impactor = [i * 10 * 1e3 for i in range(1, 101)]
 X_FeO = []
 X_Fe = []
 X_Si = []
 ln_fO2 = []
-P_eq = 0.7 * 25
-T_eq = 4000
 
 for i in range(len(r_impactor)):
     mol_si = calculate_total_element_moles(si, molar_mass_si, planet_mantle_depth, r_planet, r_impactor[i], calculate_impactor_core_radius(r_impactor[i]))
     mol_fe = calculate_total_element_moles(fe, molar_mass_fe, planet_mantle_depth, r_planet, r_impactor[i], calculate_impactor_core_radius(r_impactor[i]))
     mol_ni = calculate_total_element_moles(ni, molar_mass_ni, planet_mantle_depth, r_planet, r_impactor[i], calculate_impactor_core_radius(r_impactor[i]))
     mol_o = 2 * mol_si
-    fe_metal = bisection_search(root_bracket(mol_fe, mol_ni, mol_si, mol_o), mol_fe, 10e-7, mol_fe, mol_ni, mol_si, mol_o)
+    fe_metal = bisection_search(root_bracket(mol_fe, mol_ni, mol_si, mol_o, 0, 0, P_eq, T_eq, 0), mol_fe, 10e-7, mol_fe, mol_ni, mol_si, mol_o, 0, 0, P_eq, T_eq, 0)
     fe_sil = mol_fe - fe_metal
     actual_kd_ni = calculate_kd('ni', T_eq, P_eq, 1.06, 1553, -98)
     ni_sil = mol_ni * fe_sil / (fe_sil + actual_kd_ni * fe_metal)

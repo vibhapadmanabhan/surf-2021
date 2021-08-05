@@ -1,16 +1,13 @@
-from fe_equilibrium import *
-
+from equilibrium import *
+"""No Mg in mantle."""
 r_impactor = [i * 10 * 1e3 for i in range(1, 100)]
-# r_impactor = 100 * 1e3
-P_cmb = 0.7 * 25 # GPa
-P_eq = [i * 0.1 * P_cmb for i in range(1, 10)]
+
 X_FeO = []
 X_Fe = []
 X_Si = []
 X_Va = []
 v_metal = 0
-T_eq = 4000
-# mantle_depth = [i * 1e3 for i in range(300, 701)]
+
 for i in range(len(r_impactor)):
     mol_si = calculate_total_element_moles(si, molar_mass_si, planet_mantle_depth, r_planet, r_impactor[i], calculate_impactor_core_radius(r_impactor[i]))
     mol_fe_s = calculate_total_element_moles(fe_s, molar_mass_fe + molar_mass_o, planet_mantle_depth, r_planet, r_impactor[i], calculate_impactor_core_radius(r_impactor[i]))
@@ -20,7 +17,7 @@ for i in range(len(r_impactor)):
     mol_v = calculate_total_element_moles(v, molar_mass_v, planet_mantle_depth, r_planet, r_impactor[i], calculate_impactor_core_radius(r_impactor[i]))
     mol_o = 2 * mol_si + mol_fe_s # ignore contributions of V oxides in mass balance for O
 
-    fe_metal = bisection_search(f, root_bracket(f, mol_fe, mol_ni, mol_si, mol_o, mol_v, P_eq, T_eq, v_metal), mol_fe, 10e-7, mol_fe, mol_ni, mol_si, mol_o, mol_v, P_eq, T_eq, v_metal)
+    fe_metal = bisection_search(f, root_bracket(f, mol_fe, mol_ni, mol_si, mol_o, mol_v, 0, P_eq, T_eq, v_metal), mol_fe, 10e-7, mol_fe, mol_ni, mol_si, mol_o, mol_v, 0, P_eq, T_eq, v_metal)
     actual_kd_ni = calculate_kd("ni", T_eq, P_eq, 1.06, 1553, -98)
     fe_sil = mol_fe - fe_metal
     ni_sil = mol_ni * fe_sil / (fe_sil + actual_kd_ni * fe_metal)
@@ -28,7 +25,7 @@ for i in range(len(r_impactor)):
     si_sil = (mol_o - ni_sil - fe_sil) / 2
     si_metal = mol_si - si_sil
 
-    v_metal = bisection_search(g, 0, root_bracket(g, mol_fe, mol_ni, mol_si, mol_o, mol_v, P_eq, fe_metal), 10e-7, mol_fe, mol_ni, mol_si, mol_o, mol_v, P_eq, fe_metal)
+    v_metal = bisection_search(g, 0, root_bracket(g, mol_fe, mol_ni, mol_si, mol_o, mol_v, 0, P_eq, T_eq, fe_metal), 10e-7, mol_fe, mol_ni, mol_si, mol_o, mol_v, 0, P_eq, T_eq, fe_metal)
     v_sil = mol_v - v_metal
 
     X_Si.append(si_metal / (fe_metal + ni_metal + si_metal + v_metal))
