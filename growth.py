@@ -1,4 +1,4 @@
-from fe_equilibrium import *
+from equilibrium import *
 
 # knowns
 r_planet = 100 * 1e3
@@ -88,6 +88,102 @@ def save_data(X_FeO, X_Fe, X_SiO2, X_Si, X_Va, X_V2O3, X_Ni, X_NiO, pressure, te
             f.write("%s\n" % val)
 
     with open("X_Ni.txt", "w") as f:
+        for val in X_Ni:
+            f.write("%s\n" % val)
+
+    with open("X_NiO.txt", "w") as f:
+        for val in X_NiO:
+            f.write("%s\n" % val)
+
+    with open("X_SiO2.txt", "w") as f:
+        for val in X_SiO2:
+            f.write("%s\n" % val)
+
+    with open("X_Si.txt", "w") as f:
+        for val in X_Si:
+            f.write("%s\n" % val)
+
+    with open("temperature.txt", "w") as f:
+        for val in temperature:
+            f.write("%s\n" % val)
+
+    with open("pressure.txt", "w") as f:
+        for val in pressure:
+            f.write("%s\n" % val)
+
+    with open("gravity.txt", "w") as f:
+        for val in gravity:
+            f.write("%s\n" % val)
+
+    with open("h.txt", "w") as f:
+        for val in mantle_depth:
+            f.write("%s\n" % val)
+    
+    with open("planet_size.txt", "w") as f:
+        for val in planet_size:
+            f.write("%s\n" % val)
+
+    with open("fO2.txt", "w") as f:
+        for val in fO2:
+            f.write("%s\n" % val)
+
+
+def save_deep_MO_data(X_FeO, X_Fe, X_SiO2, X_Si, X_Va, X_V2O3, X_Ni, X_NiO, pressure, temperature, gravity, planet_size, fO2, mantle_depth):
+    with open("deep_MO_X_FeO.txt", "w") as f:
+        for val in X_FeO:
+            f.write("%s\n" % val)
+
+    with open("deep_MO_X_Fe.txt", "w") as f:
+        for val in X_Fe:
+            f.write("%s\n" % val)
+
+    with open("deep_MO_X_Va.txt", "w") as f:
+        for val in X_Va:
+            f.write("%s\n" % val)
+
+    with open("deep_MO_X_V2O3.txt", "w") as f:
+        for val in X_V2O3:
+            f.write("%s\n" % val)
+
+    with open("deep_MO_X_Ni.txt", "w") as f:
+        for val in X_Ni:
+            f.write("%s\n" % val)
+
+    with open("deep_MO_X_NiO.txt", "w") as f:
+        for val in X_NiO:
+            f.write("%s\n" % val)
+
+    with open("deep_MO_X_SiO2.txt", "w") as f:
+        for val in X_SiO2:
+            f.write("%s\n" % val)
+
+    with open("deep_MO_X_Si.txt", "w") as f:
+        for val in X_Si:
+            f.write("%s\n" % val)
+
+    with open("deep_MO_temperature.txt", "w") as f:
+        for val in temperature:
+            f.write("%s\n" % val)
+
+    with open("deep_MO_pressure.txt", "w") as f:
+        for val in pressure:
+            f.write("%s\n" % val)
+
+    with open("deep_MO_gravity.txt", "w") as f:
+        for val in gravity:
+            f.write("%s\n" % val)
+
+    with open("deep_MO_h.txt", "w") as f:
+        for val in mantle_depth:
+            f.write("%s\n" % val)
+    
+    with open("deep_MO_planet_size.txt", "w") as f:
+        for val in planet_size:
+            f.write("%s\n" % val)
+
+    with open("deep_MO_fO2.txt", "w") as f:
+        for val in fO2:
+            f.write("%s\n" % val)
         for val in X_Ni:
             f.write("%s\n" % val)
 
