@@ -71,154 +71,118 @@ def Teq(Peq):
     return 0.4 * 1661.2 * (Peq / 1.336 / 10**9 + 1)**(1 / 7.437) + 0.6 * 1982.1 * (Peq / 6.594 / 1e9 + 1)**(1 / 5.374)
 
 def save_data(X_FeO, X_Fe, X_SiO2, X_Si, X_Va, X_V2O3, X_Ni, X_NiO, pressure, temperature, gravity, planet_size, fO2, mantle_depth):
-    with open("X_FeO.txt", "w") as f:
+    with open("./data/rapid-solidification/X_FeO.txt", "w") as f:
         for val in X_FeO:
             f.write("%s\n" % val)
 
-    with open("X_Fe.txt", "w") as f:
+    with open("./data/rapid-solidification/X_Fe.txt", "w") as f:
         for val in X_Fe:
             f.write("%s\n" % val)
 
-    with open("X_Va.txt", "w") as f:
+    with open("./data/rapid-solidification/X_Va.txt", "w") as f:
         for val in X_Va:
             f.write("%s\n" % val)
 
-    with open("X_V2O3.txt", "w") as f:
+    with open("./data/rapid-solidification/X_V2O3.txt", "w") as f:
         for val in X_V2O3:
             f.write("%s\n" % val)
 
-    with open("X_Ni.txt", "w") as f:
+    with open("./data/rapid-solidificationX_Ni.txt", "w") as f:
         for val in X_Ni:
             f.write("%s\n" % val)
 
-    with open("X_NiO.txt", "w") as f:
+    with open("./data/rapid-solidification/X_NiO.txt", "w") as f:
         for val in X_NiO:
             f.write("%s\n" % val)
 
-    with open("X_SiO2.txt", "w") as f:
+    with open("./data/rapid-solidification/X_SiO2.txt", "w") as f:
         for val in X_SiO2:
             f.write("%s\n" % val)
 
-    with open("X_Si.txt", "w") as f:
+    with open("./data/rapid-solidification/X_Si.txt", "w") as f:
         for val in X_Si:
             f.write("%s\n" % val)
 
-    with open("temperature.txt", "w") as f:
+    with open("./data/rapid-solidification/temperature.txt", "w") as f:
         for val in temperature:
             f.write("%s\n" % val)
 
-    with open("pressure.txt", "w") as f:
+    with open("./data/rapid-solidification/pressure.txt", "w") as f:
         for val in pressure:
             f.write("%s\n" % val)
 
-    with open("gravity.txt", "w") as f:
+    with open("./data/rapid-solidification/gravity.txt", "w") as f:
         for val in gravity:
             f.write("%s\n" % val)
 
-    with open("h.txt", "w") as f:
+    with open("./data/rapid-solidification/h.txt", "w") as f:
         for val in mantle_depth:
             f.write("%s\n" % val)
     
-    with open("planet_size.txt", "w") as f:
+    with open("./data/rapid-solidification/planet_size.txt", "w") as f:
         for val in planet_size:
             f.write("%s\n" % val)
 
-    with open("fO2.txt", "w") as f:
+    with open("./data/rapid-solidification/fO2.txt", "w") as f:
         for val in fO2:
             f.write("%s\n" % val)
 
 
 def save_deep_MO_data(X_FeO, X_Fe, X_SiO2, X_Si, X_Va, X_V2O3, X_Ni, X_NiO, pressure, temperature, gravity, planet_size, fO2, mantle_depth):
-    with open("deep_MO_X_FeO.txt", "w") as f:
+    with open("./data/deep-MO/deep_MO_X_FeO.txt", "w") as f:
         for val in X_FeO:
             f.write("%s\n" % val)
 
-    with open("deep_MO_X_Fe.txt", "w") as f:
+    with open("./data/deep-MO/deep_MO_X_Fe.txt", "w") as f:
         for val in X_Fe:
             f.write("%s\n" % val)
 
-    with open("deep_MO_X_Va.txt", "w") as f:
+    with open("./data/deep-MO/deep_MO_X_Va.txt", "w") as f:
         for val in X_Va:
             f.write("%s\n" % val)
 
-    with open("deep_MO_X_V2O3.txt", "w") as f:
+    with open("./data/deep-MO/deep_MO_X_V2O3.txt", "w") as f:
         for val in X_V2O3:
             f.write("%s\n" % val)
 
-    with open("deep_MO_X_Ni.txt", "w") as f:
+    with open("./data/deep-MO/deep_MO_X_Ni.txt", "w") as f:
         for val in X_Ni:
             f.write("%s\n" % val)
 
-    with open("deep_MO_X_NiO.txt", "w") as f:
+    with open("./data/deep-MO/deep_MO_X_NiO.txt", "w") as f:
         for val in X_NiO:
             f.write("%s\n" % val)
 
-    with open("deep_MO_X_SiO2.txt", "w") as f:
+    with open("./data/deep-MO/deep_MO_X_SiO2.txt", "w") as f:
         for val in X_SiO2:
             f.write("%s\n" % val)
 
-    with open("deep_MO_X_Si.txt", "w") as f:
+    with open("./data/deep-MO/deep_MO_X_Si.txt", "w") as f:
         for val in X_Si:
             f.write("%s\n" % val)
 
-    with open("deep_MO_temperature.txt", "w") as f:
+    with open("./data/deep-MO/deep_MO_temperature.txt", "w") as f:
         for val in temperature:
             f.write("%s\n" % val)
 
-    with open("deep_MO_pressure.txt", "w") as f:
+    with open("./data/deep-MO/deep_MO_pressure.txt", "w") as f:
         for val in pressure:
             f.write("%s\n" % val)
 
-    with open("deep_MO_gravity.txt", "w") as f:
+    with open("./data/deep-MO/deep_MO_gravity.txt", "w") as f:
         for val in gravity:
             f.write("%s\n" % val)
 
-    with open("deep_MO_h.txt", "w") as f:
+    with open("./data/deep-MO/deep_MO_h.txt", "w") as f:
         for val in mantle_depth:
             f.write("%s\n" % val)
     
-    with open("deep_MO_planet_size.txt", "w") as f:
+    with open("./data/deep-MO/deep_MO_planet_size.txt", "w") as f:
         for val in planet_size:
             f.write("%s\n" % val)
 
-    with open("deep_MO_fO2.txt", "w") as f:
+    with open("./data/deep-MO/deep_MO_fO2.txt", "w") as f:
         for val in fO2:
             f.write("%s\n" % val)
-        for val in X_Ni:
-            f.write("%s\n" % val)
 
-    with open("X_NiO.txt", "w") as f:
-        for val in X_NiO:
-            f.write("%s\n" % val)
-
-    with open("X_SiO2.txt", "w") as f:
-        for val in X_SiO2:
-            f.write("%s\n" % val)
-
-    with open("X_Si.txt", "w") as f:
-        for val in X_Si:
-            f.write("%s\n" % val)
-
-    with open("temperature.txt", "w") as f:
-        for val in temperature:
-            f.write("%s\n" % val)
-
-    with open("pressure.txt", "w") as f:
-        for val in pressure:
-            f.write("%s\n" % val)
-
-    with open("gravity.txt", "w") as f:
-        for val in gravity:
-            f.write("%s\n" % val)
-
-    with open("h.txt", "w") as f:
-        for val in mantle_depth:
-            f.write("%s\n" % val)
     
-    with open("planet_size.txt", "w") as f:
-        for val in planet_size:
-            f.write("%s\n" % val)
-
-    with open("fO2.txt", "w") as f:
-        for val in fO2:
-            f.write("%s\n" % val)

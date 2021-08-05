@@ -18,7 +18,7 @@ mols_fe_c = 1000 * fe * 0.01 * calculate_vol(planet_core_radius) * rho_core / mo
 
 v_metal = 0
 i = 0
-for i in range(100):
+for i in range(10):
     print(i)
     planet_size.append(r_planet)
     r_impactor = r_planet / 10
