@@ -6,6 +6,7 @@ X_FeO = []
 X_Fe = []
 X_Si = []
 X_Va = []
+X_VO = []
 v_metal = 0
 
 for i in range(len(r_impactor)):
@@ -32,6 +33,7 @@ for i in range(len(r_impactor)):
     X_FeO.append(fe_sil / (fe_sil + ni_sil + si_sil + v_sil))
     X_Fe.append(fe_metal / (fe_metal + ni_metal + si_metal + v_metal))
     X_Va.append(v_metal / (v_metal + ni_metal + fe_metal + si_metal))
+    X_VO.append(v_sil / (fe_sil + ni_sil + v_sil + si_sil))
 
 r_impactor = [i / 1e3 for i in r_impactor]
 
@@ -39,7 +41,7 @@ fO2 = []
 for i in range(len(r_impactor)):
     fO2.append(calculate_ln_o_iw_fugacity(X_FeO[i], X_Fe[i]))
 
-plt.plot(r_impactor, X_Si)
+plt.plot(r_impactor, X_VO)
 plt.xlabel("Impactor radius (km)")
 plt.ylabel("X_V2O3")
 plt.title("X_V2O3 vs impactor radius (for a 1000 km radius planet)")
