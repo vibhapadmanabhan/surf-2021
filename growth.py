@@ -2,13 +2,12 @@ from equilibrium import *
 
 # knowns
 r_planet = 100 * 1e3
-melt_factor = 10
 k = 3.926763924239811e-12 # using Mars' mass-g relationship
 
-# starting mantle composition of oxygen-free elements, and oxygen, in wt% (assuming FeO is 8 wt%, MgO is 46 wt%, SiO2 is 54 - 0.00606 wt%)
-fe_s = 6.218
-mg_s = 27.737
-si_s = 25.19
+# starting mantle composition of oxygen-free elements, and oxygen, in wt% (assuming FeO is 8 wt%, MgO is 42 wt%, SiO2 is 50 - 0.00606 wt%)
+fe_s = 6.2172
+mg_s = 25.325
+si_s = 23.33
 ni_s = 0
 v_s = 0.004119
 o_s = 100 - fe_s - mg_s - si_s - ni_s - v_s
@@ -18,7 +17,6 @@ fe = 85
 ni = 15
 si = 0
 v = 0
-mg = 0
 
 # lists 
 X_FeO = []
@@ -41,9 +39,9 @@ def calculate_g(M_p):
     """Calculate gravitational acceleration using g ~ M_p^(0.503) and M_Mars = 6.39e23 kg, g_Mars = 3.7 m / s"""
     return M_p**0.503 * k
 
-def calculate_h(melt_vol, planet_size):
+def calculate_h(melt_vol, r_planet):
     """Returns the depth of mantle that is melted by an impactor."""
-    return planet_size - (planet_size**3 - 3 / 4 / math.pi * melt_vol)**(1 / 3)
+    return r_planet - (r_planet**3 - 3 / 4 / math.pi * melt_vol)**(1 / 3)
 
 def Peq(g, h):
     """Returns P_eq in GPa."""
@@ -61,7 +59,7 @@ def body_mass(r_body, core_radius):
     return 4 / 3 * math.pi * (core_radius**3 * rho_core + (r_body - core_radius)**3 * rho_mantle)
 
 def ocean_mass(r_planet, depth):
-    return 4 / 3 * math.pi * (r_planet ** 3 - (r_planet - depth)**3) * rho_mantle
+    return 4 / 3 * math.pi * (r_planet**3 - (r_planet - depth)**3) * rho_mantle
 
 def convert_moles_to_mass(mol_element, element_molar_mass):
     """Returns the mass in kg of an element given its molar mass and number of moles."""
@@ -69,6 +67,12 @@ def convert_moles_to_mass(mol_element, element_molar_mass):
 
 def Teq(Peq):
     return 0.4 * 1661.2 * (Peq / 1.336 / 10**9 + 1)**(1 / 7.437) + 0.6 * 1982.1 * (Peq / 6.594 / 1e9 + 1)**(1 / 5.374)
+
+def sphere_radius(mass, density):
+    return (3 / 4/ math.pi * mass / density)**(1 / 3)
+
+def shell_width(mass, density, inner_radius):
+    return (3 / 4 / math.pi * mass / density + inner_radius**3)**(1 / 3) - inner_radius
 
 def save_data(X_FeO, X_Fe, X_SiO2, X_Si, X_Va, X_V2O3, X_Ni, X_NiO, pressure, temperature, gravity, planet_size, fO2, mantle_depth):
     with open("./data/rapid-solidification/X_FeO.txt", "w") as f:
