@@ -33,7 +33,7 @@ X_SiO2 = []
 X_NiO = []
 X_Mg = []
 X_VO = []
-
+X_FeO_impactor = []
 # physical 
 gravity = []
 pressure = []
@@ -83,7 +83,7 @@ def sphere_radius(mass, density):
 def shell_width(mass, density, inner_radius):
     return (3 / 4 / math.pi * mass / density + inner_radius**3)**(1 / 3) - inner_radius
 
-def save_data(X_Fe, X_Si, X_Ni, X_Va, X_FeO, X_SiO2, X_NiO, X_Mg, X_VO, gravity, pressure, temperature, planet_size, impactor_size, mantle_depth, fO2, filename):
+def save_data(X_Fe, X_Si, X_Ni, X_Va, X_FeO, X_SiO2, X_NiO, X_Mg, X_VO, X_FeO_impactor, gravity, pressure, temperature, planet_size, impactor_size, mantle_depth, fO2, filename):
     df = pd.DataFrame()
     df["X_Fe"] = X_Fe
     df["X_Si"] = X_Si
@@ -101,4 +101,5 @@ def save_data(X_Fe, X_Si, X_Ni, X_Va, X_FeO, X_SiO2, X_NiO, X_Mg, X_VO, gravity,
     df["Impactor size (km)"] = impactor_size
     df["Magma ocean depth (km)"] = mantle_depth
     df["ln(fO2)_IW"] = fO2
+    df["FeO wt\% in impactor"] = X_FeO_impactor
     df.to_csv(filename, sep='\t', index=False)

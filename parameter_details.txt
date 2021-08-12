@@ -1,6 +1,18 @@
 melt factor trials: 10x, 50x, 100x
 parameters held constant: 
 impactor size = 1 / 5 radius of planet
-mantle composition of impactor = 8 wt% FeO, 42 wt% MgO, 50 - 0.00606 wt% SiO2, 0.00606 wt% V2O3
+mantle composition of impactor = 8 wt% FeO, 42 wt% MgO, 50 - 0.00606 wt% SiO2, 0.00606 wt% V2O3 (homogeneous accretion)
 P and T calculated using given relations
 
+homogeneous accretion; deep MO
+impactor size = 1 / 5 radius of planet
+mantle composition of impactor = 8 wt% FeO, 42 wt% MgO, 50 - 0.00606 wt% SiO2, 0.00606 wt% V2O3 (homogeneous accretion)
+P and T calculated using given relations
+entire mantle = MO (entire mantle is molten; h = r_planet - planet_core_radius
+
+not done yet
+=============
+heterogeneous accretion: trying out all whole number percentages from 0 to 20
+parameters held constant:
+impactor size = 1 / 10 radius of planet
+mantle composition varying: Si and Mg decrease based on increase of 
