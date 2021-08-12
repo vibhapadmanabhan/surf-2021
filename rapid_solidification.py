@@ -68,7 +68,6 @@ for i in range(len(melt_factor)):
         # Mg and O aren't partitioned into the core, so simply add moles delivered to total moles in the mantle.
         mol_mg += delivered_mg
         mol_o += delivered_o
-        
         # equilibrium and mass balance
         P_eq = Peq(g_acc, h)
         pressure.append(P_eq)
@@ -124,27 +123,4 @@ for i in range(len(melt_factor)):
         X_VO.append(mol_v * 2 / (mol_fe + mol_ni + mol_si + mol_v / 2 + mol_mg))
         X_Mg.append(mol_mg / (mol_fe + mol_ni + mol_si + mol_v / 2 + mol_mg))
         j += 1
-    save_data(X_Fe, X_Si, X_Ni, X_Va, X_FeO, X_SiO2, X_NiO, X_VO, gravity, pressure, temperature, planet_size, impactor_size, mantle_depth, fO2, "./data/rapid-solidification/melt_factor_{}.txt".format(melt_factor[i]))
-
-# save_data(X_FeO, X_Fe, X_SiO2, X_Si, X_Va, X_VO, X_Ni, X_NiO, pressure, temperature, gravity, planet_size, fO2, mantle_depth)
-
-# # plot fugacity
-# plt.plot([r / 1e3 for r in planet_size], fO2)
-# plt.xlabel("Planet radius (km)")
-# plt.ylabel("ln(fO2) - IW")
-# plt.title("Fugacity vs. planet radius")
-# plt.show()
-
-# # plot Si molar concentration in core
-# plt.plot([r / 1e3 for r in planet_size], X_Si)
-# plt.xlabel("Planet radius (km)")
-# plt.ylabel("[Si]_m")
-# plt.title("Molar concentration of Si in core vs. planet radius")
-# plt.show()
-
-# # plot FeO molar concentration in mantle
-# plt.plot([r / 1e3 for r in planet_size], X_FeO)
-# plt.xlabel("Planet radius (km)")
-# plt.ylabel("[FeO]_sil")
-# plt.title("Molar concentration of FeO in mantle vs. planet radius")
-# plt.show()
+    save_data(X_Fe, X_Si, X_Ni, X_Va, X_FeO, X_SiO2, X_NiO, X_Mg, X_VO, gravity, pressure, temperature, planet_size, impactor_size, mantle_depth, fO2, "./data/rapid-solidification/melt_factor_{}.txt".format(melt_factor[i]))

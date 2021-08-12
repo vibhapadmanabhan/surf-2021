@@ -1,0 +1,6 @@
+melt factor trials: 10x, 50x, 100x
+parameters held constant: 
+impactor size = 1 / 5 radius of planet
+mantle composition of impactor = 8 wt% FeO, 42 wt% MgO, 50 - 0.00606 wt% SiO2, 0.00606 wt% V2O3
+P and T calculated using given relations
+
