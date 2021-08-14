@@ -10,7 +10,7 @@ fe_s = 6.2172
 mg_s = 25.325
 si_s = 23.33
 ni_s = 0
-v_s = 0.004119
+v_s = 0.00606
 o_s = 100 - fe_s - mg_s - si_s - ni_s - v_s
 
 # starting core composition in wt%

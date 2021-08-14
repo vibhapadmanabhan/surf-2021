@@ -18,29 +18,28 @@ mols_v_c = 1000 * v * 0.01 * calculate_vol(planet_core_radius) * rho_core / mola
 mols_ni_c = 1000 * ni * 0.01 * calculate_vol(planet_core_radius) * rho_core / molar_mass_ni
 mols_fe_c = 1000 * fe * 0.01 * calculate_vol(planet_core_radius) * rho_core / molar_mass_fe
 
+r_impactor = 10e3
+c_impactor = core_radius(r_impactor)
+delivered_fe = 1000 * fe * 0.01 * calculate_vol(c_impactor) * rho_core / molar_mass_fe
+delivered_ni = 1000 * ni * 0.01 * calculate_vol(c_impactor) * rho_core / molar_mass_ni
+delivered_fe_s = fe_s * 0.01 * ocean_mass(r_impactor, r_impactor - c_impactor) * 1000 / molar_mass_fe
+delivered_si = 1000 * si_s * 0.01 * ocean_mass(r_impactor, r_impactor - c_impactor) / molar_mass_si
+delivered_mg = 1000 * mg_s * 0.01 * ocean_mass(r_impactor, r_impactor - c_impactor) / molar_mass_mg
+delivered_v = 1000 * v_s * 0.01 * ocean_mass(r_impactor, r_impactor - c_impactor) / molar_mass_v
+delivered_o = 1000 * o_s * 0.01 * ocean_mass(r_impactor, r_impactor - c_impactor) / molar_mass_o
 v_metal = 0
 j = 0
-fe_s = 17.52
-si_s = (54 - 0.00606 - fe_s / 2) / (molar_mass_si + molar_mass_o * 2) * molar_mass_si
-mg_s = (46 - fe_s / 2) / (molar_mass_mg + molar_mass_o) * molar_mass_mg
-o_s = 100 - fe_s - mg_s - si_s - v_s
+# fe_s = 17.52
+# si_s = (54 - 0.00606 - fe_s / 2) / (molar_mass_si + molar_mass_o * 2) * molar_mass_si
+# mg_s = (46 - fe_s / 2) / (molar_mass_mg + molar_mass_o) * molar_mass_mg
+# o_s = 100 - fe_s - mg_s - si_s - v_s
 
 while r_planet <= 1000e3:
     print(j)
     planet_size.append(r_planet)
-    r_impactor = r_planet / 5
     impactor_size.append(r_impactor)
-    c_impactor = core_radius(r_impactor)
     X_FeO_impactor.append(fe_s)
 
-    delivered_fe = 1000 * fe * 0.01 * calculate_vol(c_impactor) * rho_core / molar_mass_fe
-    delivered_ni = 1000 * ni * 0.01 * calculate_vol(c_impactor) * rho_core / molar_mass_ni
-
-    delivered_fe_s = fe_s * 0.01 * ocean_mass(r_impactor, r_impactor - c_impactor) * 1000 / molar_mass_fe
-    delivered_si = 1000 * si_s * 0.01 * ocean_mass(r_impactor, r_impactor - c_impactor) / molar_mass_si
-    delivered_mg = 1000 * mg_s * 0.01 * ocean_mass(r_impactor, r_impactor - c_impactor) / molar_mass_mg
-    delivered_v = 1000 * v_s * 0.01 * ocean_mass(r_impactor, r_impactor - c_impactor) / molar_mass_v
-    delivered_o = 1000 * o_s * 0.01 * ocean_mass(r_impactor, r_impactor - c_impactor) / molar_mass_o
     h = calculate_h(melt_factor * calculate_vol(r_impactor), r_planet)
     # h_frac is the fraction of the mantle that is molten (magma ocean)
     h_frac = calculate_shell_vol(h, r_planet) / calculate_shell_vol(r_planet - planet_core_radius, r_planet)
@@ -79,7 +78,7 @@ while r_planet <= 1000e3:
     temperature.append(T_eq)
     # print("temperature", T_eq)
     # small error due to exclusion of delta h from volume of impactor mantle (does not change results)
-    fe_metal = bisection_search(f, root_bracket(f, mol_fe_MO, mol_ni_MO, mol_si_MO, mol_o_MO, mol_v_MO, mol_mg_MO, P_eq, T_eq, v_metal), mol_fe_MO, 10e-12, mol_fe_MO, mol_ni_MO, mol_si_MO, mol_o_MO, mol_v_MO, mol_mg_MO, P_eq, T_eq, v_metal)
+    fe_metal = bisection_search("fe", root_bracket("fe", mol_fe_MO, mol_ni_MO, mol_si_MO, mol_o_MO, mol_v_MO, mol_mg_MO, P_eq, T_eq, v_metal), mol_fe_MO, 10e-12, mol_fe_MO, mol_ni_MO, mol_si_MO, mol_o_MO, mol_v_MO, mol_mg_MO, P_eq, T_eq, v_metal)
     fe_sil = mol_fe_MO - fe_metal
     # both K_eq are decreasing
     actual_kd_ni = calculate_kd("ni", T_eq, P_eq, 1.06, 1553, -98)
@@ -87,7 +86,7 @@ while r_planet <= 1000e3:
     ni_metal = mol_ni_MO - ni_sil
     si_sil = (mol_o_MO - ni_sil - fe_sil - mol_mg_MO) / 2
     si_metal = mol_si_MO - si_sil
-    v_metal = bisection_search(g, 0, root_bracket(g, mol_fe_MO, mol_ni_MO, mol_si_MO, mol_o_MO, mol_v_MO, mol_mg_MO, P_eq, T_eq, fe_metal), 10e-12, mol_fe_MO, mol_ni_MO, mol_si_MO, mol_o_MO, mol_v_MO, mol_mg_MO, P_eq, T_eq, fe_metal)
+    v_metal = bisection_search("v", 0, root_bracket("v", mol_fe_MO, mol_ni_MO, mol_si_MO, mol_o_MO, mol_v_MO, mol_mg_MO, P_eq, T_eq, fe_metal), 10e-12, mol_fe_MO, mol_ni_MO, mol_si_MO, mol_o_MO, mol_v_MO, mol_mg_MO, P_eq, T_eq, fe_metal)
     v_sil = mol_v_MO - v_metal
 
     # add moles in metal phase to total moles of each element in the core
@@ -103,10 +102,10 @@ while r_planet <= 1000e3:
     mol_v += v_sil - mol_v * h_frac
 
     # change impactor composition
-    fe_s -= 0.02
-    si_s = (54 - 0.00606 - fe_s / 2) / (molar_mass_si + molar_mass_o * 2) * molar_mass_si
-    mg_s = (46 - fe_s / 2) / (molar_mass_mg + molar_mass_o) * molar_mass_mg
-    o_s = 100 - fe_s - mg_s - si_s - v_s
+    # fe_s -= 0.02
+    # si_s = (54 - 0.00606 - fe_s / 2) / (molar_mass_si + molar_mass_o * 2) * molar_mass_si
+    # mg_s = (46 - fe_s / 2) / (molar_mass_mg + molar_mass_o) * molar_mass_mg
+    # o_s = 100 - fe_s - mg_s - si_s - v_s
 
     # add moles in silicate phase to total moles of each element in the mantle
     new_mantle_mass = convert_moles_to_mass(mol_fe, molar_mass_fe) + convert_moles_to_mass(mol_ni, molar_mass_ni) + convert_moles_to_mass(mol_si, molar_mass_si) + convert_moles_to_mass(mol_v, molar_mass_v) + convert_moles_to_mass(mol_o, molar_mass_o) + convert_moles_to_mass(mol_mg, molar_mass_mg)
@@ -132,4 +131,4 @@ while r_planet <= 1000e3:
     X_VO.append(mol_v * 2 / (mol_fe + mol_ni + mol_si + mol_v / 2 + mol_mg))
     X_Mg.append(mol_mg / (mol_fe + mol_ni + mol_si + mol_v / 2 + mol_mg))
     j += 1
-save_data(X_Fe, X_Si, X_Ni, X_Va, X_FeO, X_SiO2, X_NiO, X_Mg, X_VO, X_FeO_impactor, gravity, pressure, temperature, planet_size, impactor_size, mantle_depth, fO2, "./data/rapid-solidification/heterogeneous_accretion_decreasing_FeO.txt")
+save_data(X_Fe, X_Si, X_Ni, X_Va, X_FeO, X_SiO2, X_NiO, X_Mg, X_VO, X_FeO_impactor, gravity, pressure, temperature, planet_size, impactor_size, mantle_depth, fO2, "./data/rapid-solidification/homogeneous_constant_size_10km_melt_factor_10.txt")

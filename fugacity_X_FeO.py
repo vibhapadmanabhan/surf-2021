@@ -15,7 +15,7 @@ for i in range(len(fe_s)):
     mol_fe = calculate_total_element_moles(fe, molar_mass_fe, planet_mantle_depth, r_planet, r_impactor, calculate_impactor_core_radius(r_impactor)) + mol_fe_s
     mol_ni = calculate_total_element_moles(ni, molar_mass_ni, planet_mantle_depth, r_planet, r_impactor, calculate_impactor_core_radius(r_impactor))
     mol_o = 2 * mol_si + mol_fe_s
-    fe_metal = bisection_search(root_bracket(mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, 0), mol_fe, 10e-7, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, 0)
+    fe_metal = bisection_search("fe", root_bracket("fe", mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, 0), mol_fe, 10e-7, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, 0)
     fe_sil = mol_fe - fe_metal
     actual_kd_ni = calculate_kd("ni", T_eq, P_eq, 1.06, 1553, -98)
     ni_sil = mol_ni * fe_sil / (fe_sil + actual_kd_ni * fe_metal)

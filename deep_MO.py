@@ -67,14 +67,14 @@ while r_planet <= 1000e3:
     T_eq = Teq(P_eq * 1e9)
     temperature.append(T_eq)
     # small error due to exclusion of delta h from volume of impactor mantle (does not change results)
-    fe_metal = bisection_search(f, root_bracket(f, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, v_metal), mol_fe, 10e-12, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, v_metal)
+    fe_metal = bisection_search("fe", root_bracket("fe", mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, v_metal), mol_fe, 10e-12, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, v_metal)
     fe_sil = mol_fe - fe_metal
     actual_kd_ni = calculate_kd("ni", T_eq, P_eq, 1.06, 1553, -98)
     ni_sil = mol_ni * fe_sil / (fe_sil + actual_kd_ni * fe_metal)
     ni_metal = mol_ni - ni_sil
     si_sil = (mol_o - ni_sil - fe_sil - mol_mg) / 2
     si_metal = mol_si - si_sil
-    v_metal = bisection_search(g, 0, root_bracket(g, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, fe_metal), 10e-12, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, fe_metal)
+    v_metal = bisection_search("v", 0, root_bracket('v', mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, fe_metal), 10e-12, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, fe_metal)
     v_sil = mol_v - v_metal
     # add moles in metal phase to total moles of each element in the core
     mols_fe_c += fe_metal
