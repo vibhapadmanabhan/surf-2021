@@ -1,6 +1,5 @@
 import numpy as np
 from atmosredox import *
-R = 8.31446  # universal gas constant
 
 def GCO(T):
     dG = 0.05829 * T - 252.033
@@ -44,4 +43,3 @@ def COH2O_CH4ratio(fO2, T):
     Keq = np.exp(dG / (R * T))
     Xspecies_XCH4 = Keq * fO2**(3 / 2)
     return Xspecies_XCH4
-
