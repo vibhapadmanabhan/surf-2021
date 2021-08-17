@@ -5,14 +5,27 @@ mantle composition of impactor = 8 wt% FeO, 42 wt% MgO, 50 - 0.00606 wt% SiO2, 0
 P and T calculated using given relations
 
 homogeneous accretion; deep MO
+false vanadium used in heterogeneous accretion: 0.004119
+
 impactor size = 1 / 5 radius of planet
 mantle composition of impactor = 8 wt% FeO, 42 wt% MgO, 50 - 0.00606 wt% SiO2, 0.00606 wt% V2O3 (homogeneous accretion)
 P and T calculated using given relations
 entire mantle = MO (entire mantle is molten; h = r_planet - planet_core_radius
 
-not done yet
-=============
-heterogeneous accretion: trying out all whole number percentages from 0 to 20
+heterogeneous accretion for deep MO: increment FeO content by 0.02 each time. 874 iterations. upper bound 17.50 wt% starting at 0 wt% (need to add X_FeO_impactor column to the txt file)
 parameters held constant:
-impactor size = 1 / 10 radius of planet
-mantle composition varying: Si and Mg decrease based on increase of 
+impactor size = 1 / 5 radius of planet
+mantle composition varying: Si, O and Mg decrease based on increase of FeO
+planet starting composition is 8 wt% FeO, 42 wt% MgO, 50 - 0.00606 wt% SiO2, 0.00606 wt% V2O3
+
+heterogeneous accretion for deep MO (decreasing FeO content): same as before but FeO decreasing by 0.02 instead.
+
+
+# heterogeneous accretion for rapid solidification:
+melt factor is 10
+impactor size = 1 / 5 of planet
+using same wt% FeO as in deep MO
+same starting planet composition
+
+# heterogeneous accretion (rapid solidification): decrementing FeO from 17.52 wt%
+check vanadium for all of the above
