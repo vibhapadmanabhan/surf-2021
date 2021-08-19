@@ -3,7 +3,6 @@ from growth import *
 """This file models the deep magma ocean concept. The magma ocean is the entire mantle."""
 
 planet_core_radius = core_radius(r_planet)
-rho_mantle = 4000
 # in the planet
 mol_fe = 1000 * fe_s * 0.01 * ocean_mass(r_planet, r_planet - planet_core_radius) / (molar_mass_fe)
 mol_ni = 1000 * ni_s * 0.01 * ocean_mass(r_planet, r_planet - planet_core_radius) / (molar_mass_ni)
@@ -31,7 +30,7 @@ v_metal = 0
 # mg_s = (46 - fe_s / 2) / (molar_mass_mg + molar_mass_o) * molar_mass_mg
 # o_s = 100 - fe_s - mg_s - si_s - v_s
 j = 0
-for i in range(100):
+while r_planet <= 6378e3:
     print(j)
     planet_size.append(r_planet)
     X_FeO_impactor.append(fe_s)
@@ -62,16 +61,17 @@ for i in range(100):
     mol_o += delivered_o
 
     # equilibrium and mass balance
-    P_eq = Peq(g_acc, h) # assume CMB pressure
+    P_eq = Peq2(h, r_planet, planet_mass) / 1e9 # assume CMB pressure
+    print("pressure", P_eq)
     pressure.append(P_eq)
     T_eq = Teq(P_eq * 1e9)
+    print("temperature", T_eq)
     temperature.append(T_eq)
     # small error due to exclusion of delta h from volume of impactor mantle (does not change results)
     fe_metal = bisection_search("fe", root_bracket("fe", mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, v_metal), mol_fe, 10e-12, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, v_metal)
     fe_sil = mol_fe - fe_metal
     actual_kd_ni = calculate_kd("ni", T_eq, P_eq, 1.06, 1553, -98)
     actual_kd_si = calculate_kd("si", T_eq, P_eq, 2.98, -15934, 0)
-    print(actual_kd_si)
     ni_sil = mol_ni * fe_sil / (fe_sil + actual_kd_ni * fe_metal)
     ni_metal = mol_ni - ni_sil
     si_sil = (mol_o - ni_sil - fe_sil - mol_mg) / 2
@@ -106,8 +106,8 @@ for i in range(100):
     # o_s = 100 - fe_s - mg_s - si_s - v_s
 
     # calculate fugacity
-    X_FeO.append(mol_fe / (mol_fe + mol_ni + mol_si + mol_v / 2 + mol_mg + mols_fe_c + mols_si_c + mols_ni_c + mols_v_c))
-    X_Fe.append(mols_fe_c / (mols_fe_c + mols_si_c + mols_ni_c + mols_v_c + mol_fe + mol_ni + mol_si + mol_v / 2 + mol_mg))
+    X_FeO.append(mol_fe / (mol_fe + mol_ni + mol_si + mol_v / 2 + mol_mg))
+    X_Fe.append(mols_fe_c / (mols_fe_c + mols_si_c + mols_ni_c + mols_v_c))
     fO2.append(calculate_ln_o_iw_fugacity(X_FeO[-1], X_Fe[-1]))
 
     # track other values
@@ -120,5 +120,5 @@ for i in range(100):
     X_VO.append(mol_v * 2 / (mol_fe + mol_ni + mol_si + mol_v / 2 + mol_mg))
     j += 1
 
-print(fO2[-10:])
-# save_data(X_Fe, X_Si, X_Ni, X_Va, X_FeO, X_SiO2, X_NiO, X_Mg, X_VO, X_FeO_impactor, gravity, pressure, temperature, planet_size, impactor_size, mantle_depth, fO2, "./data/deep-MO/heterogeneous_accretion_decreasing_FeO.txt")
+print(X_Si[-10:])
+# save_data(X_Fe, X_Si, X_Ni, X_Va, X_FeO, X_SiO2, X_NiO, X_Mg, X_VO, X_FeO_impactor, gravity, pressure, temperature, planet_size, impactor_size, mantle_depth, fO2, "./data/deep-MO/homogeneous_accretion_earth_size_onefifth_r_planet_impactors_rubie_temperature.txt")

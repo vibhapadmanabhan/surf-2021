@@ -25,7 +25,7 @@ def CO2_COratio(fO2, T):
     muCO = GCO(T)
     muO2 = 0
 
-    dG = muCO + 0.5 * muO2 - muCO
+    dG = muCO + 0.5 * muO2 - muCO2
     Keq = np.exp(dG / (R * T))
     XCdioxide_CO = Keq * np.sqrt(fO2)
     return XCdioxide_CO
@@ -43,3 +43,15 @@ def COH2O_CH4ratio(fO2, T):
     Keq = np.exp(dG / (R * T))
     Xspecies_XCH4 = Keq * fO2**(3 / 2)
     return Xspecies_XCH4
+
+def GFeO(T):
+    dG = 0.05277 * T - 254.1475
+    return dG
+
+def Keq_FeO_H2O(T):
+    Keq = np.exp((GFeO(T) - GH2O(T)) / R / T)
+    return Keq
+
+def H2O_H2ratio_atmosphere(Keq, mol_FeO):
+    return Keq * mol_FeO
+

@@ -29,6 +29,8 @@ molar_mass_si = 28
 molar_mass_o = 16
 molar_mass_v = 50.9415
 molar_mass_mg = 24.3
+molar_mass_h = 1
+molar_mass_c = 12
 
 planet_mantle_depth = 300 * 1E3  # assumed
 
