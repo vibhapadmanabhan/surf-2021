@@ -4,19 +4,19 @@
 import numpy             as np
 import matplotlib.pyplot as plt
 
-import matplotlib.patches as ptch
-from   matplotlib import rc
-from   matplotlib.font_manager import FontProperties
-from   matplotlib.ticker       import MultipleLocator, FormatStrFormatter
-import sys
+# import matplotlib.patches as ptch
+# from   matplotlib import rc
+# from   matplotlib.font_manager import FontProperties
+# from   matplotlib.ticker       import MultipleLocator, FormatStrFormatter
+# import sys
 
-plt.rcParams['figure.figsize']= 4*1.414, 4*1
-plt.rcParams['font.family']='sans-serif'
-plt.rcParams['font.size']     = 14
-plt.rcParams['axes.linewidth']= 1.0
-rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
-rc('text',usetex=True)
-rc('text.latex', preamble=r'\usepackage{sfmath}')
+# plt.rcParams['figure.figsize']= 4*1.414, 4*1
+# plt.rcParams['font.family']='sans-serif'
+# plt.rcParams['font.size']     = 14
+# plt.rcParams['axes.linewidth']= 1.0
+# rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
+# rc('text',usetex=True)
+# rc('text.latex', preamble=r'\usepackage{sfmath}')
 
 R   = 8.31446  # universal gas constant
 
