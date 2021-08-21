@@ -46,7 +46,6 @@ def H2O_H2ratio(fO2, Tin):
     
     dG  = muH2 + 0.5*muO2 - muH2O  # in J/mol
     Keq = np.exp(dG/(R*Tin))       # convert to equilibrium constant
-
     xH2O_xH2 = Keq*np.sqrt(fO2)    # equilibrium relation
     
     return xH2O_xH2

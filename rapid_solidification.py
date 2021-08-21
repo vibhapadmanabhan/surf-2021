@@ -1,6 +1,6 @@
 from equilibrium import *
 from growth import *
-from atmosredox import H2O_H2ratio, GH2O
+from atmosredox import H2O_H2ratio, GH2O, fO2_fromIW
 from atmosphere import Keq_FeO_H2O, GFeO
 """This file models the rapid solidification theory. The magma ocean solidifies completely before the next impactor arrives."""
 
@@ -32,7 +32,7 @@ mols_fe_c = 1000 * fe * 0.01 * calculate_vol(planet_core_radius) * rho_core / mo
 v_metal = 0
 j = 0
 
-while r_planet <= 1000e3:
+for i in range(10):
     print(j)
     planet_size.append(r_planet)
     # if j != 0 and j % 1000 == 0:
@@ -134,6 +134,9 @@ while r_planet <= 1000e3:
     j += 1
 
 # atmosphere
+# convert fO2 to bars
+fO2_bar = fO2_fromIW(np.exp(fO2[-1]), Teq(0))
+print("fO2 in bars", fO2_bar)
 mol_H2O = 0.01 * new_mantle_mass * 1000 / (molar_mass_h *2 + molar_mass_o)
 mol_h = 2 * mol_H2O
 mol_fe_atmos = fe_sil
@@ -143,14 +146,16 @@ mol_o_atmos = mol_H2O + mol_fe_atmos
 mol_CO2 = 0.01 * new_mantle_mass * 1000 / (molar_mass_c + molar_mass_o * 2)
 
 # equilibrium reaction 2H2 + O2 <--> 2H2O occurs
-H2O_H2 = H2O_H2ratio(fO2[-1], Teq)
-
+H2O_H2 = H2O_H2ratio(fO2_bar, Teq(0))
+print("water hydrogen ratio", H2O_H2)
 # equilibrium reaction FeO + H2 <--> Fe + H2O occurs
-xFeO_MO = H2O_H2 / Keq_FeO_H2O(Teq)
+xFeO_MO = H2O_H2 / Keq_FeO_H2O(Teq(0))
+print("equilibrium const", Keq_FeO_H2O(Teq(0)))
+# print(xFeO_MO)
 mol_fe_mo = xFeO_MO * (ni_sil + mol_mg * h_frac + si_sil + v_sil) / (1 - xFeO_MO)
 mol_H2O_atmos = mol_o_atmos - mol_fe_mo
 mol_fe_metal = mol_fe_atmos - mol_fe_mo
-conc_fe_metal = mol_fe_metal / (mol_fe_metal + si_metal + ni_metal + v_metal)
+conc_fe_metal = 1 # (mol_fe_metal + fe_metal)/ (mol_fe_metal + si_metal + ni_metal + v_metal + fe_metal)
 mol_H2_atmos = (mol_h - 2 * mol_H2O_atmos) / 2
 final_fO2 = calculate_ln_o_iw_fugacity(xFeO_MO, conc_fe_metal)
 print(final_fO2)
