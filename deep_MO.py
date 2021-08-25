@@ -2,6 +2,8 @@ from equilibrium import *
 from growth import *
 """This file models the deep magma ocean concept. The magma ocean is the entire mantle."""
 
+# TODO: try setting the pressure to 0.7 of current pressure
+
 planet_core_radius = core_radius(r_planet)
 # in the planet
 mol_fe = 1000 * fe_s * 0.01 * ocean_mass(r_planet, r_planet - planet_core_radius) / (molar_mass_fe)
@@ -61,7 +63,7 @@ while r_planet <= 6378e3:
     mol_o += delivered_o
 
     # equilibrium and mass balance
-    P_eq = Peq2(h, r_planet, planet_mass) / 1e9 # assume CMB pressure
+    P_eq = Peq(g_acc, h) / 1e9 # assume 70% of CMB pressure
     print("pressure", P_eq)
     pressure.append(P_eq)
     T_eq = Teq(P_eq * 1e9)
@@ -120,5 +122,9 @@ while r_planet <= 6378e3:
     X_VO.append(mol_v * 2 / (mol_fe + mol_ni + mol_si + mol_v / 2 + mol_mg))
     j += 1
 
-print(X_Si[-10:])
-# save_data(X_Fe, X_Si, X_Ni, X_Va, X_FeO, X_SiO2, X_NiO, X_Mg, X_VO, X_FeO_impactor, gravity, pressure, temperature, planet_size, impactor_size, mantle_depth, fO2, "./data/deep-MO/homogeneous_accretion_earth_size_onefifth_r_planet_impactors_rubie_temperature.txt")
+feo_wt_percents = [i * (molar_mass_fe + molar_mass_o) * (mol_fe + mol_ni + mol_si + mol_v / 2 + mol_mg)/ 1000 / new_mantle_mass for i in X_FeO[-10:]]
+print(feo_wt_percents)
+
+si_wt_percents = [i * (molar_mass_si) * (mols_fe_c + mols_si_c + mols_ni_c + mols_v_c)/ 1000 / new_core_mass for i in X_Si[-10:]]
+print(si_wt_percents)
+# save_data(X_Fe, X_Si, X_Ni, X_Va, X_FeO, X_SiO2, X_NiO, X_Mg, X_VO, X_FeO_impactor, gravity, pressure, temperature, planet_size, impactor_size, mantle_depth, fO2, "./data/deep-MO/homogeneous_accretion_earth_size_onefifth_r_planet_impactors_70percent_CMBpressure_fullmantleequilibration.txt")

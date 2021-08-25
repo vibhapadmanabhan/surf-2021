@@ -8,9 +8,9 @@ k = 3.926763924239811e-12 # using Mars' mass-g relationship
 G = 6.674e-11
 
 # starting mantle composition of oxygen-free elements, and oxygen, in wt% (assuming FeO is 8 wt%, MgO is 42 wt%, SiO2 is 50 - 0.00606 wt%, V is 0.00606 wt%)
-fe_s = 6.2172
-mg_s = 25.325
-si_s = 23.33
+fe_s = 2.5 # 6.2172
+mg_s = 25.325 + (3.2172 + 0.5) / 2
+si_s = 23.33 + (3.2172 + 0.5) / 2
 ni_s = 0
 v_s = 0.00606
 o_s = 100 - fe_s - mg_s - si_s - ni_s - v_s
@@ -21,7 +21,7 @@ ni = 15
 si = 0
 v = 0
 
-# lists 
+# lists
 
 # chemical
 # core
