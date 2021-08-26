@@ -1,6 +1,7 @@
 import math
 import numpy as np
 import matplotlib.pyplot as plt
+from atmosphere import Keq_FeO_H2O
 from numba import jit, njit, float32
 
 # constants
@@ -130,6 +131,31 @@ def g(v_metal, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, fe_meta
 
 
 @njit
+def h(mol_fe_mo, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, mol_h):
+    """
+    Returns the difference between the actual value of K_d(FeO - H2O) and calculated value for K_d(FeO - H2O). (Root of function will be found at the 
+    correct value of K_d)
+    """
+    # mol_h > 2 * mol_H2O
+    # mol_h > 2 * (mol_o - mol_fe_mo)
+    # 2mol_fe_mo > 2 * mol_o - mol_h
+    # mol_fe_mo > mol_o - mol_h / 2
+    actual_kd = Keq_FeO_H2O(T_eq)
+    mol_fe_metal = mol_fe - mol_fe_mo
+    mol_H2O = mol_o - mol_fe_mo
+    # print("mol H2O", mol_H2O, '\n')
+    mol_H2 = (mol_h - 2 * mol_H2O) / 2
+    # print("mol H2",mol_H2)
+    # print("mol H2", mol_H2, '\n')
+    conc_fe_mo = mol_fe_mo / (mol_ni + mol_fe_mo + mol_si + mol_v + mol_mg)
+    conc_H2O = mol_H2O / (mol_H2O + mol_H2)
+    conc_H2 = mol_H2 / (mol_H2O + mol_H2)
+    # print("kd", conc_H2O / conc_H2 / conc_fe_mo - actual_kd)
+    # print("calculated kd", conc_H2O / conc_H2 / conc_fe_mo)
+    # print("conc H2", conc_H2)
+    return conc_H2O / conc_H2 / conc_fe_mo - actual_kd
+
+@njit
 def root_bracket(metal, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, aux):
     """Finds the lower/upper bound of an interval that can be used for the bisection search."""
     if metal == "fe":
@@ -148,6 +174,35 @@ def root_bracket(metal, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq
             val *= 1.0001
         return val
 
+    elif metal == "mol_fe_mo":
+        # First find upper bound
+        # set value below which H2 <= 0.
+        a = 2 * mol_o - aux
+        print("total fe", mol_fe)
+        val = a
+        print("initial minimum FeO", a)
+        # print("amount of FeO assuming H2 is 0", a)
+        # print("value with slightly offset minimum hydrogen gas", h(a, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, aux))
+        # print("initial lower bound", a)
+        FA = h(val, mol_fe, mol_ni, mol_si, mol_o,
+               mol_v, mol_mg, P_eq, T_eq, aux)
+        print("FA", FA)
+        print("mol fe   val", mol_fe, val)
+        print("initial upper bound")
+        while val < mol_fe and FA * h(val, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, aux) > 0:
+            val *= 1.0000001
+            print("inside while loop 1")
+        print('out of while loop 1')
+        # In interval (a, val), search for lower bound.
+        FB = h(val, mol_fe, mol_ni, mol_si, mol_o,
+               mol_v, mol_mg, P_eq, T_eq, aux)
+        while val > a and FB * h(val, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, aux) > 0:
+            val /= 1.0000001
+            print("inside while loop 2")
+        print('out of while loop 2')
+        print(val)
+        return val
+
 
 def bisection_search(metal, a, b, eps, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, aux):
     """Aux refers to either fe_metal or v_metal, depending on which function kd(Si-Fe) or kd(V-Fe) is being searched for the root."""
@@ -155,17 +210,25 @@ def bisection_search(metal, a, b, eps, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol
         func = f
     elif (metal == "v"):
         func = g
-
+    elif (metal == "mol_fe_mo"):
+        func = h
+    # print(b)
     while True:
+        # print("bisection search")
         FA = func(a, mol_fe, mol_ni, mol_si, mol_o,
                   mol_v, mol_mg, P_eq, T_eq, aux)
+        # print("lower bound", FA)
         elem_metal = (a + b) / 2
+        # print(elem_metal)
+        # print("upper bound", func(b, mol_fe, mol_ni, mol_si, mol_o,
+                  # mol_v, mol_mg, P_eq, T_eq, aux))
         FP = func(elem_metal, mol_fe, mol_ni, mol_si,
                   mol_o, mol_v, mol_mg, P_eq, T_eq, aux)
         if np.abs(FP) <= eps:  # close enough to true value
             break
         if FA * FP > 0:
             a = elem_metal
+            # print("here")
         else:
             b = elem_metal
     return elem_metal

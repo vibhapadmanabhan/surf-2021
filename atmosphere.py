@@ -1,5 +1,6 @@
 import numpy as np
 from atmosredox import *
+from numba import njit, jit, float32
 
 def GCO(T):
     dG = 0.05829 * T - 252.033
@@ -44,10 +45,12 @@ def COH2O_CH4ratio(fO2, T):
     Xspecies_XCH4 = Keq * fO2**(3 / 2)
     return Xspecies_XCH4
 
+@jit(nopython=True)
 def GFeO(T):
     dG = 0.05277 * T - 254.1475
     return dG
 
+@jit(nopython=True)
 def Keq_FeO_H2O(T):
     Keq = np.exp((GFeO(T) - GH2O(T)) / R / T)
     return Keq

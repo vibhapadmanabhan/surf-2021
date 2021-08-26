@@ -3,6 +3,7 @@
 
 import numpy             as np
 import matplotlib.pyplot as plt
+from numba import jit, njit, float32
 
 # import matplotlib.patches as ptch
 # from   matplotlib import rc
@@ -32,6 +33,7 @@ def fO2_fromIW(fO2_dIW, T):
 
     return fO2
 
+@jit(nopython=True)
 def GH2O(Tin):
     ''' dG (J/mol) as a function of T. Data taken from JANAF database and fit using a linear regression '''
     dG = 0.0547*Tin - 246.56   # in kJ/mol. Tin is in [K].
