@@ -138,7 +138,7 @@ fO2_bar = fO2_fromIW(np.exp(fO2[-1]), Teq(0))
 print("fO2 in bars", fO2_bar)
 
 # calculate moles of H2O assuming H2O is 0.1 wt% of mantle weight and all H2 is in the form of water
-mol_H2O = h_s * new_mantle_mass * 1000 / (molar_mass_h * 2 + molar_mass_o)
+mol_H2O = 0.01 * h_s * new_mantle_mass * 1000 / (molar_mass_h * 2 + molar_mass_o)
 mol_h = h_frac * (2 * mol_H2O)
 
 # total moles of Fe available for re-equilibrium is number of moles left in MO after impact
