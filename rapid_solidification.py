@@ -163,7 +163,7 @@ mol_fe_mo = bisection_search("mol_fe_mo", root_bracket("mol_fe_mo", fe_sil, ni_s
 mol_fe_metal = mol_fe - mol_fe_mo
 mol_H2O = mol_o - mol_fe_mo
 mol_H2 = (mol_h - 2 * mol_H2O) / 2
-conc_fe_mo = mol_fe_mo / (mol_ni + mol_fe_mo + mol_si + mol_v + mol_mg)
+conc_fe_mo = mol_fe_mo / (ni_sil + mol_fe_mo + si_sil + v_sil + h_frac * mol_mg)
 conc_H2O = mol_H2O / (mol_H2O + mol_H2)
 conc_H2 = mol_H2 / (mol_H2O + mol_H2)
 
