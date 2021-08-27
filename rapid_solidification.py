@@ -146,15 +146,15 @@ mol_h = 2 * h_frac * 0.01 * h_s * new_mantle_mass * 1000 / (molar_mass_o + molar
 H2O_H2 = H2O_H2ratio(fO2_bar, Teq(0))
 mol_H2 = 1 / (1 + H2O_H2) * mol_h / 2
 print("mol H2", mol_H2)
-mol_H2O = mol_h - mol_H2
+mol_H2O = (mol_h - (2 * mol_H2)) / 2
 print("mol H2O", mol_H2O)
 # calculate H2O and H2
 
 # total moles of Fe available for re-equilibrium is number of moles left in MO after impact
-mol_fe_reeq = H2O_H2 / Keq_FeO_H2O(Teq(0))
+mol_fe_reeq = fe_sil
 
 # total moles of O available for re-equilibrium
-mol_o_atmos = fe_sil
+mol_o_atmos = mol_fe_reeq + mol_H2O
 
 # ignoring CO2 for now
 # mol_CO2 = 0.001 * new_mantle_mass * 1000 / (molar_mass_c + molar_mass_o * 2)
