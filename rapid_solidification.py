@@ -36,7 +36,7 @@ for i in range(10):
     print(j)
     planet_size.append(r_planet)
     # if j != 0 and j % 1000 == 0:
-    r_impactor = r_planet / 5
+    r_impactor = r_planet / 3
     c_impactor = core_radius(r_impactor)
     delivered_fe = 1000 * fe * 0.01 * calculate_vol(c_impactor) * rho_core / molar_mass_fe
     delivered_ni = 1000 * ni * 0.01 * calculate_vol(c_impactor) * rho_core / molar_mass_ni
@@ -117,60 +117,59 @@ for i in range(10):
     r_planet = new_mantle_depth + planet_core_radius
 
     # calculate fugacity
-    X_FeO.append(mol_fe / (mol_fe + mol_ni + mol_si + mol_v / 2 + mol_mg))
+    X_FeO.append(fe_sil / (fe_sil + ni_sil + si_sil + v_sil / 2 + mol_mg * h_frac))
     # X_Fe.append(mols_fe_c / (mols_fe_c + mols_si_c + mols_ni_c + mols_v_c))
     X_Fe.append(fe_metal / (ni_metal + si_metal + fe_metal + v_metal))
     fO2.append(calculate_ln_o_iw_fugacity(X_FeO[-1], X_Fe[-1]))
 
     # track other values
-    X_Si.append(mols_si_c / (mols_fe_c + mols_v_c + mols_ni_c + mols_si_c))
-    X_NiO.append(mol_ni / (mol_fe + mol_ni + mol_si + mol_v / 2 + mol_mg))
-    X_Ni.append(mols_ni_c / (mols_fe_c + mols_si_c + mols_ni_c + mols_v_c))
-    X_SiO2.append(mol_si / (mol_fe + mol_ni + mol_si + mol_v / 2 + mol_mg))
-    X_Va.append(mols_v_c / (mols_fe_c + mols_si_c + mols_ni_c + mols_v_c))
-    X_VO.append(mol_v * 2 / (mol_fe + mol_ni + mol_si + mol_v / 2 + mol_mg))
-    X_Mg.append(mol_mg / (mol_fe + mol_ni + mol_si + mol_v / 2 + mol_mg))
+    # X_Si.append(mols_si_c / (mols_fe_c + mols_v_c + mols_ni_c + mols_si_c))
+    X_Si.append(si_metal / (si_metal + fe_metal + ni_metal + v_metal))
+    X_NiO.append(ni_sil / (fe_sil + ni_sil + si_sil + mol_v / 2 + mol_mg * h_frac))
+    X_Ni.append(ni_metal / (fe_metal + si_metal + ni_metal + v_metal))
+    X_SiO2.append(si_sil / (fe_sil + ni_sil + si_sil + v_sil / 2 + mol_mg * h_frac))
+    X_Va.append(v_metal/ (fe_metal + si_metal + ni_metal + v_metal))
+    X_VO.append(v_sil * 2 / (fe_sil + ni_sil + si_sil + v_sil / 2 + mol_mg * h_frac))
+    X_Mg.append(mol_mg * h_frac / (fe_sil + ni_sil + si_sil + v_sil / 2 + mol_mg * h_frac))
     j += 1
 
-# atmosphere
-# convert fO2 to bars
+# atmosphere
+# convert fO2 to bars
 fO2_bar = fO2_fromIW(np.exp(fO2[-1]), Teq(0))
-print("fO2 in bars", fO2_bar)
+print("fO2 in bars", fO2_bar)
 
-# calculate moles of H2O assuming H2O is 0.1 wt% of mantle weight and all H2 is in the form of water
-mol_H2O = 0.01 * h_s * new_mantle_mass * 1000 / (molar_mass_h * 2 + molar_mass_o)
-mol_h = h_frac * (2 * mol_H2O)
+# calculate moles of H in the magma ocean, assuming all H is present in the form of H2O.
+mol_h = 2 * h_frac * 0.01 * h_s * new_mantle_mass * 1000 / (molar_mass_o + molar_mass_h * 2)
 
-# total moles of Fe available for re-equilibrium is number of moles left in MO after impact
-mol_fe_reeq = fe_sil
+# equilibrium reaction 2H2 + O2 <--> 2H2O occurs
+# using fO2 from equilibrium calculate H2O / H2 ratio
+H2O_H2 = H2O_H2ratio(fO2_bar, Teq(0))
+mol_H2 = 1 / (1 + H2O_H2) * mol_h / 2
+print("mol H2", mol_H2)
+mol_H2O = mol_h - mol_H2
+print("mol H2O", mol_H2O)
+# calculate H2O and H2
 
-# total moles of O
-mol_o_atmos = fe_sil + h_frac * mol_H2O
+# total moles of Fe available for re-equilibrium is number of moles left in MO after impact
+mol_fe_reeq = H2O_H2 / Keq_FeO_H2O(Teq(0))
 
-# ignoring CO2 for now
-# mol_CO2 = 0.001 * new_mantle_mass * 1000 / (molar_mass_c + molar_mass_o * 2)
+# total moles of O available for re-equilibrium
+mol_o_atmos = fe_sil
 
-# # equilibrium reaction 2H2 + O2 <--> 2H2O occurs
-# # using fO2 from equilibrium calculate H2O / H2 ratio
-# H2O_H2 = H2O_H2ratio(fO2_bar, Teq(0))
+# ignoring CO2 for now
+# mol_CO2 = 0.001 * new_mantle_mass * 1000 / (molar_mass_c + molar_mass_o * 2)
+# # equilibrium reaction FeO + H2 <--> Fe + H2O occurs
+# # calculate concentration of Fe in MO using equilibrium relation
 
-# # equilibrium reaction FeO + H2 <--> Fe + H2O occurs
-# # calculate concentration of Fe in MO using equilibrium relation
-# xFeO_MO = H2O_H2 / Keq_FeO_H2O(Teq(0))
-
-# fe sil value is 6.103461777373827e+17
 mol_fe_mo = bisection_search("mol_fe_mo", root_bracket("mol_fe_mo", fe_sil, ni_sil, si_sil, mol_o_atmos, v_sil, mol_mg * h_frac, P_eq, T_eq, mol_h), fe_sil, 1e-9, fe_sil, ni_sil, si_sil, mol_o_atmos, v_sil, mol_mg * h_frac, 0, Teq(0), mol_h)
-mol_fe_metal = mol_fe - mol_fe_mo
-mol_H2O = mol_o - mol_fe_mo
+mol_fe_metal = mol_fe_reeq - mol_fe_mo
+mol_H2O = mol_o_atmos - mol_fe_mo
 mol_H2 = (mol_h - 2 * mol_H2O) / 2
 conc_fe_mo = mol_fe_mo / (ni_sil + mol_fe_mo + si_sil + v_sil + h_frac * mol_mg)
 conc_H2O = mol_H2O / (mol_H2O + mol_H2)
 conc_H2 = mol_H2 / (mol_H2O + mol_H2)
-
-print("calculated kd", conc_H2O / conc_H2 / conc_fe_mo)
+print("calculated kd", conc_H2O / conc_H2 / conc_fe_mo)
 conc_fe_metal = 1
 final_fO2 = calculate_ln_o_iw_fugacity(conc_fe_mo, conc_fe_metal)
 print(final_fO2)
-
-# print(fO2[-10:])
 # save_data(X_Fe, X_Si, X_Ni, X_Va, X_FeO, X_SiO2, X_NiO, X_Mg, X_VO, X_FeO_impactor, gravity, pressure, temperature, planet_size, impactor_size, mantle_depth, fO2, "./data/rapid-solidification/.txt")

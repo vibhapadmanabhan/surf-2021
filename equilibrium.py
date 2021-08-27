@@ -145,6 +145,9 @@ def h(mol_fe_mo, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, mol_h
     mol_H2O = mol_o - mol_fe_mo
     # print("mol H2O", mol_H2O, '\n')
     mol_H2 = (mol_h - 2 * mol_H2O) / 2
+    # print("mol H2", mol_H2)
+    if mol_H2 <= 0:
+        return False
     # print("mol H2",mol_H2)
     # print("mol H2", mol_H2, '\n')
     conc_fe_mo = mol_fe_mo / (mol_ni + mol_fe_mo + mol_si + mol_v + mol_mg)
@@ -177,30 +180,39 @@ def root_bracket(metal, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq
     elif metal == "mol_fe_mo":
         # First find upper bound
         # set value below which H2 <= 0.
-        a = 2 * mol_o - aux
-        print("total fe", mol_fe)
-        val = a
-        print("initial minimum FeO", a)
-        # print("amount of FeO assuming H2 is 0", a)
-        # print("value with slightly offset minimum hydrogen gas", h(a, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, aux))
-        # print("initial lower bound", a)
+        # a = 2 * mol_o - aux
+        # print("total fe", mol_fe)
+        # val = a
+        # print("initial minimum FeO", a)
+        # # print("amount of FeO assuming H2 is 0", a)
+        # # print("value with slightly offset minimum hydrogen gas", h(a, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, aux))
+        # # print("initial lower bound", a)
+        # FA = h(val, mol_fe, mol_ni, mol_si, mol_o,
+        #        mol_v, mol_mg, P_eq, T_eq, aux)
+        # print("FA", FA)
+        # print("mol fe   val", mol_fe, val)
+        # print("initial upper bound")
+        # while val < mol_fe and FA * h(val, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, aux) > 0:
+        #     val *= 1.0000001
+        #     print("inside while loop 1")
+        # print('out of while loop 1')
+        # # In interval (a, val), search for lower bound.
+        # FB = h(val, mol_fe, mol_ni, mol_si, mol_o,
+        #        mol_v, mol_mg, P_eq, T_eq, aux)
+        # while val > a and FB * h(val, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, aux) > 0:
+        #     val /= 1.0000001
+        #     print("inside while loop 2")
+        # print('out of while loop 2')
+        # print(val)
+        # return val
+        val = 1e-6
+        print("total Fe", mol_fe)
         FA = h(val, mol_fe, mol_ni, mol_si, mol_o,
                mol_v, mol_mg, P_eq, T_eq, aux)
-        print("FA", FA)
-        print("mol fe   val", mol_fe, val)
-        print("initial upper bound")
-        while val < mol_fe and FA * h(val, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, aux) > 0:
-            val *= 1.0000001
-            print("inside while loop 1")
-        print('out of while loop 1')
-        # In interval (a, val), search for lower bound.
-        FB = h(val, mol_fe, mol_ni, mol_si, mol_o,
-               mol_v, mol_mg, P_eq, T_eq, aux)
-        while val > a and FB * h(val, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, aux) > 0:
-            val /= 1.0000001
-            print("inside while loop 2")
-        print('out of while loop 2')
+        while not h(val, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, aux) and val <= mol_fe and FA * h(val, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, aux) > 0:
+            val *= 1.0001
         print(val)
+        print("=======================================================")
         return val
 
 
