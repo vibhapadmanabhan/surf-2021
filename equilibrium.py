@@ -131,9 +131,26 @@ def g(v_metal, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, fe_meta
 
 
 @njit
-def solve_atmosphere(mol_fe_mo, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, mol_h):
+def solve_H2O_atmosphere(mol_fe_mo, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, mol_h):
     """
     Returns the difference between the actual value of K_d(FeO - H2O) and calculated value for K_d(FeO - H2O). (Root of function will be found at the 
+    correct value of K_d)
+    """
+    actual_kd = Keq_FeO_H2O(T_eq)
+    mol_fe_metal = mol_fe - mol_fe_mo
+    mol_H2O = mol_o - mol_fe_mo
+    mol_H2 = (mol_h - 2 * mol_H2O) / 2
+    # print("mol h2", mol_H2)
+    conc_fe_mo = mol_fe_mo / (mol_ni + mol_fe_mo + mol_si + mol_v + mol_mg)
+    conc_H2O = mol_H2O / (mol_H2O + mol_H2)
+    conc_H2 = mol_H2 / (mol_H2O + mol_H2)
+    # print("kd error", conc_H2O / conc_H2 / conc_fe_mo - actual_kd)
+    return conc_H2O / conc_H2 / conc_fe_mo - actual_kd
+
+# @njit
+def solve_CO2_atmosphere(mol_fe_mo, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, mol_c):
+    """
+    Returns the difference between the actual value of K_d(FeO - CO2) and calculated value for K_d(FeO - CO2). (Root of function will be found at the 
     correct value of K_d)
     """
     actual_kd = Keq_FeO_H2O(T_eq)
@@ -145,6 +162,7 @@ def solve_atmosphere(mol_fe_mo, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_
     conc_H2 = mol_H2 / (mol_H2O + mol_H2)
     # print("kd error", conc_H2O / conc_H2 / conc_fe_mo - actual_kd)
     return conc_H2O / conc_H2 / conc_fe_mo - actual_kd
+
 
 @njit
 def root_bracket(metal, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, aux):
@@ -165,6 +183,15 @@ def root_bracket(metal, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq
             val *= 1.0001
         return val
 
+    elif metal == "mol_fe_mo":
+        val = (mol_o - aux / 2) + 1e-6
+        FA = solve_H2O_atmosphere(val, mol_fe, mol_ni, mol_si, mol_o,
+               mol_v, mol_mg, P_eq, T_eq, aux)
+        while val <= mol_fe and FA * solve_H2O_atmosphere(val, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, aux) > 0:
+            val *= 1.0001
+        print("val", val)
+        return val
+
 
 
 def bisection_search(metal, a, b, eps, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, aux):
@@ -174,7 +201,9 @@ def bisection_search(metal, a, b, eps, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol
     elif (metal == "v"):
         func = g
     elif (metal == "mol_fe_mo"):
-        func = solve_atmosphere
+        func = solve_H2O_atmosphere
+    elif (metal == "mol_c_mo"):
+        func = solve_CO2_atmosphere
     while True:
         FA = func(a, mol_fe, mol_ni, mol_si, mol_o,
                   mol_v, mol_mg, P_eq, T_eq, aux)

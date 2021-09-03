@@ -52,9 +52,10 @@ def GFeO(T):
 
 @jit(nopython=True)
 def Keq_FeO_H2O(T):
-    Keq = np.exp((GFeO(T) - GH2O(T)) / R / T)
+    Keq = np.exp((GH2O(T) - GFeO(T)) / R / T)
     return Keq
 
-def H2O_H2ratio_atmosphere(Keq, mol_FeO):
-    return Keq * mol_FeO
-
+@jit(nopython=True)
+def Keq_FeO_CO2(T):
+    Keq = np.exp((GCO2(T) - GFeO(T)) / R / T)
+    return Keq

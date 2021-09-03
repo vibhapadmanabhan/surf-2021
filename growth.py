@@ -14,6 +14,7 @@ si_s = 23.33 + (3.2172 + 0.5) / 2
 ni_s = 0
 v_s = 0.00606
 h_s = 0.1 / 18 * 2
+# c_s = 0.05 / 40 * 12
 o_s = 100 - fe_s - mg_s - si_s - ni_s - v_s - h_s
 
 # starting core composition in wt%
@@ -134,6 +135,9 @@ def sphere_radius(mass, density):
 
 def shell_width(mass, density, inner_radius):
     return (3 / 4 / math.pi * mass / density + inner_radius**3)**(1 / 3) - inner_radius
+
+def shell_width_from_outer(mass, density, outer_radius):
+    return outer_radius - (- 3 / 4 / math.pi * mass / density + outer_radius**3)**(1 / 3)
 
 def save_data(X_Fe, X_Si, X_Ni, X_Va, X_FeO, X_SiO2, X_NiO, X_Mg, X_VO, X_FeO_impactor, gravity, pressure, temperature, planet_size, impactor_size, mantle_depth, fO2, filename):
     df = pd.DataFrame()
