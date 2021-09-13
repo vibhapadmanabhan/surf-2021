@@ -33,7 +33,7 @@ mols_fe_c = 1000 * fe * 0.01 * calculate_vol(planet_core_radius) * rho_core / mo
 v_metal = 0
 j = 0
 
-while r_planet <= 1000e3:
+for i in range(10):
     print(j)
     planet_size.append(r_planet)
     # if j != 0 and j % 1000 == 0:
@@ -49,7 +49,7 @@ while r_planet <= 1000e3:
     # assume all H delivered is in the form of H2O
     delivered_h = 2 * 1000 * h_s * 0.01 * ocean_mass(r_impactor, r_impactor - c_impactor) / (molar_mass_h * 2 + molar_mass_o)
     # assume all C delivered is in the form of CO2
-    # delivered_c = 1000 * c_s * 0.01 * ocean_mass(r_impactor, r_impactor - c_impactor) / (molar_mass_c + molar_mass_o * 2)
+    delivered_c = 1000 * c_s * 0.01 * ocean_mass(r_impactor, r_impactor - c_impactor) / (molar_mass_c + molar_mass_o * 2)
     impactor_size.append(r_impactor)
     X_FeO_impactor.append(fe_s)
     # print("total mantle depth", r_planet - planet_core_radius)
@@ -145,49 +145,61 @@ while r_planet <= 1000e3:
     # assume CO2 and H2O always make up the same wt % of the MO + impactor system because volatiles delivered and lost at a constant rate
     # calculate moles of H in the magma ocean, assuming all H is present in the form of H2O.
     mol_h = 2 * h_frac * 0.01 * h_s * new_mantle_mass * 1000 / (molar_mass_o + molar_mass_h * 2) + delivered_h
-    # calculate moles of C in the magma ocean, assuming all C is present in the form of CO2.
-    # mol_c = h_frac * 0.01 * c_s * new_mantle_mass * 1000 / (molar_mass_c + molar_mass_o * 2) + delivered_c
+    # calculate moles of C in the magma ocean, assuming all C is present in the form of CO2 (assumption subject to change).
+    mol_c = h_frac * 0.01 * c_s * new_mantle_mass * 1000 / (molar_mass_c + molar_mass_o * 2) + delivered_c
+
     # equilibrium reaction 2H2 + O2 <--> 2H2O occurs
     # using fO2 from equilibrium calculate H2O / H2 ratio
     H2O_H2 = H2O_H2ratio(fO2_bar, Teq(0))
     mol_H2 = 1 / (1 + H2O_H2) * mol_h / 2
     mol_H2O = (mol_h - (2 * mol_H2)) / 2
-    # calculate H2O and H2
     # total moles of Fe available for re-equilibrium is number of moles left in MO after impact
     mol_fe_reeq = fe_sil
     # total moles of O available for re-equilibrium
     mol_o_atmos = mol_fe_reeq + mol_H2O
-    # ignoring CO2 for now
-    # mol_CO2 = 0.001 * new_mantle_mass * 1000 / (molar_mass_c + molar_mass_o * 2)
     # # equilibrium reaction FeO + H2 <--> Fe + H2O occurs
-    # calculate concentration of Fe in MO using equilibrium relation
-    # val0 = (mol_o_atmos - mol_h / 2) + 1e-6
-    mol_fe_mo = bisection_search("mol_fe_mo", root_bracket("mol_fe_mo", fe_sil, ni_sil, si_sil, mol_o_atmos, v_sil, mol_mg * h_frac, 0, Teq(0), mol_h), fe_sil, 1e-3, fe_sil, ni_sil, si_sil, mol_o_atmos, v_sil, mol_mg * h_frac, 0, Teq(0), mol_h)
+    val0 = (mol_o_atmos - mol_h / 2) * 1.000000001
+    mol_fe_mo = bisection_search("mol_fe_mo", val0, fe_sil, 1e-3, fe_sil, ni_sil, si_sil, mol_o_atmos, v_sil, mol_mg * h_frac, 0, Teq(0), mol_h)
     mol_fe_metal = mol_fe_reeq - mol_fe_mo
     mol_H2O = mol_o_atmos - mol_fe_mo
     mol_H2 = (mol_h - 2 * mol_H2O) / 2
     conc_fe_mo = mol_fe_mo / (ni_sil + mol_fe_mo + si_sil + v_sil + h_frac * mol_mg)
     conc_H2O = mol_H2O / (mol_H2O + mol_H2)
     conc_H2 = mol_H2 / (mol_H2O + mol_H2)
-    conc_fe_metal = 1
-    mols_fe_c += mol_fe_metal
-    print("here")
+
+    # add metal to core and remove from mantle
+    
+    mol_fe_reeq -= mol_fe_metal
 
     fO2_reeq = calculate_fugacity(conc_H2O, conc_H2, Keq_FeO_H2O(Teq(0)))
-    print("ln fO2", math.log(fO2_reeq))
+    # print("ln fO2 H2O_H2", math.log(fO2_reeq))
 
     # equilibrium reaction 2CO + O2 <--> 2CO2
-    # CO2_CO = CO2_COratio(fO2_reeq, Teq(0))
-    # mol_CO = 1 / (1 + CO2_CO) * mol_c
-    # mol_CO2 = mol_c - mol_CO
-    # mol_o_atmos = mol_fe_mo + mol_CO + mol_CO2 * 2
+    CO2_CO = CO2_COratio(fO2_reeq, Teq(0))
+    mol_CO = 1 / (1 + CO2_CO) * mol_c
+    mol_CO2 = mol_c - mol_CO
+    mol_o_atmos = mol_fe_mo + mol_CO + mol_CO2 * 2
 
     # FeO + CO <--> Fe + CO2
+    mol_fe_mo = bisection_search("mol_c_mo", root_bracket("mol_c_mo", mol_fe_reeq, ni_sil, si_sil, mol_o_atmos, v_sil, mol_mg * h_frac, 0, Teq(0), mol_c), mol_fe_reeq, 1e-3, mol_fe_reeq, ni_sil, si_sil, mol_o_atmos, v_sil, mol_mg * h_frac, 0, Teq(0), mol_c)
+    
+    mol_fe_metal += mol_fe_reeq - mol_fe_mo
+    mol_carbon_compounds = mol_o - mol_fe_mo
+    conc_fe_mo = mol_fe_mo / (mol_ni + mol_fe_mo + mol_si + mol_v + mol_mg)
+    CO2_CO = Keq_FeO_CO2(Teq(0)) * conc_fe_mo
+    mol_CO = mol_carbon_compounds * 1 / (1 + CO2_CO)
+    mol_CO2 = mol_carbon_compounds - mol_CO
+    conc_CO = mol_CO / (mol_CO + mol_CO2)
+    conc_CO2 = mol_CO2 / (mol_CO + mol_CO2)
+
+    fO2_reeq = calculate_fugacity(conc_CO2, conc_CO, Keq_FeO_CO2(Teq(0)))
+    # print("ln fO2 CO2_CO", fO2_reeq)
 
     # allow the Fe metal to go to core and update size of planet
     new_core_mass = convert_moles_to_mass(mols_fe_c, molar_mass_fe) + convert_moles_to_mass(mols_ni_c, molar_mass_ni) + convert_moles_to_mass(mols_si_c, molar_mass_si) + convert_moles_to_mass(mols_v_c, molar_mass_v)
     planet_core_radius = sphere_radius(new_core_mass, rho_core)
 
+    
+    mols_fe_c += mol_fe_metal
     # update Fe in mantle
     mol_fe -= mol_fe_metal
-    

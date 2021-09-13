@@ -13,9 +13,9 @@ mg_s = 25.325 + (3.2172 + 0.5) / 2
 si_s = 23.33 + (3.2172 + 0.5) / 2
 ni_s = 0
 v_s = 0.00606
-h_s = 0.1 / 18 * 2
-# c_s = 0.05 / 40 * 12
-o_s = 100 - fe_s - mg_s - si_s - ni_s - v_s - h_s
+h_s = 0.05 / 18 * 2
+c_s = 0.05 / 40 * 12
+o_s = 100 - fe_s - mg_s - si_s - ni_s - v_s - h_s - c_s
 
 # starting core composition in wt%
 fe = 85

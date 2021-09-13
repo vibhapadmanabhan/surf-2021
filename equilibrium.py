@@ -1,7 +1,7 @@
 import math
 import numpy as np
 import matplotlib.pyplot as plt
-from atmosphere import Keq_FeO_H2O
+from atmosphere import Keq_FeO_H2O, Keq_FeO_CO2
 from numba import jit, njit, float32
 
 # constants
@@ -135,9 +135,10 @@ def solve_H2O_atmosphere(mol_fe_mo, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg
     """
     Returns the difference between the actual value of K_d(FeO - H2O) and calculated value for K_d(FeO - H2O). (Root of function will be found at the 
     correct value of K_d)
+
+    Reaction is FeO + H2 <--> Fe + H2O
     """
     actual_kd = Keq_FeO_H2O(T_eq)
-    mol_fe_metal = mol_fe - mol_fe_mo
     mol_H2O = mol_o - mol_fe_mo
     mol_H2 = (mol_h - 2 * mol_H2O) / 2
     # print("mol h2", mol_H2)
@@ -147,21 +148,24 @@ def solve_H2O_atmosphere(mol_fe_mo, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg
     # print("kd error", conc_H2O / conc_H2 / conc_fe_mo - actual_kd)
     return conc_H2O / conc_H2 / conc_fe_mo - actual_kd
 
-# @njit
+@njit
 def solve_CO2_atmosphere(mol_fe_mo, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, mol_c):
     """
     Returns the difference between the actual value of K_d(FeO - CO2) and calculated value for K_d(FeO - CO2). (Root of function will be found at the 
-    correct value of K_d)
+    correct value of K_d).
+
+    Reaction is FeO + CO <--> Fe + CO2
     """
-    actual_kd = Keq_FeO_H2O(T_eq)
-    mol_fe_metal = mol_fe - mol_fe_mo
-    mol_H2O = mol_o - mol_fe_mo
-    mol_H2 = (mol_h - 2 * mol_H2O) / 2
+    actual_kd = Keq_FeO_CO2(T_eq)
+    mol_carbon_compounds = mol_o - mol_fe_mo
     conc_fe_mo = mol_fe_mo / (mol_ni + mol_fe_mo + mol_si + mol_v + mol_mg)
-    conc_H2O = mol_H2O / (mol_H2O + mol_H2)
-    conc_H2 = mol_H2 / (mol_H2O + mol_H2)
-    # print("kd error", conc_H2O / conc_H2 / conc_fe_mo - actual_kd)
-    return conc_H2O / conc_H2 / conc_fe_mo - actual_kd
+    CO2_CO = actual_kd * conc_fe_mo
+    mol_CO = mol_carbon_compounds * 1 / (1 + CO2_CO)
+    mol_CO2 = mol_carbon_compounds - mol_CO
+    conc_CO = mol_CO / (mol_CO + mol_CO2)
+    conc_CO2 = mol_CO2 / (mol_CO + mol_CO2)
+    # print("kd error CO2", conc_CO2 / conc_CO / conc_fe_mo - actual_kd)
+    return conc_CO2 / conc_CO / conc_fe_mo - actual_kd
 
 
 @njit
@@ -183,13 +187,13 @@ def root_bracket(metal, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq
             val *= 1.0001
         return val
 
-    elif metal == "mol_fe_mo":
-        val = (mol_o - aux / 2) + 1e-6
-        FA = solve_H2O_atmosphere(val, mol_fe, mol_ni, mol_si, mol_o,
+    elif metal == "mol_c_mo":
+        val = mol_fe
+        FB = solve_H2O_atmosphere(val, mol_fe, mol_ni, mol_si, mol_o,
                mol_v, mol_mg, P_eq, T_eq, aux)
-        while val <= mol_fe and FA * solve_H2O_atmosphere(val, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, aux) > 0:
-            val *= 1.0001
-        print("val", val)
+        while val > 0 and FB * solve_CO2_atmosphere(val, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, aux) > 0:
+            val /= 1.0000001
+        # print("val", val)
         return val
 
 
@@ -222,5 +226,5 @@ def bisection_search(metal, a, b, eps, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol
 def calculate_ln_o_iw_fugacity(X_FeO, X_Fe):
     return 2 * math.log(X_FeO / X_Fe)
 
-def calculate_fugacity(X_H2O, X_H2, Keq):
-    return (X_H2O / X_H2 / Keq)**2
+def calculate_fugacity(X_prod, X_reag, Keq):
+    return (X_prod / X_reag / Keq)**2
