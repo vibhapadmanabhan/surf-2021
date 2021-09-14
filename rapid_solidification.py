@@ -151,34 +151,46 @@ for i in range(10):
     # equilibrium reaction 2H2 + O2 <--> 2H2O occurs
     # using fO2 from equilibrium calculate H2O / H2 ratio
     mol_o_atmos = mol_c * 2 + mol_h / 2
-    mol_H2O = bisection_search_atmosphere(root_bracket_atmosphere(mol_o_atmos, mol_h, mol_c, fO2_bar, Teq(0)), mol_h / 2, 1e-6, mol_o_atmos, mol_h, mol_c, fO2_bar, Teq(0))
+    upper_bound = H2O_H2ratio(fO2_bar, T_eq) * mol_h / 2 / (1 + H2O_H2ratio(fO2_bar, T_eq))
+    mol_H2O = bisection_search_atmosphere(1e-16, upper_bound, 1e-6, mol_o_atmos, mol_h, mol_c, fO2_bar, Teq(0))
     print("moles of H2O", mol_H2O)
     mol_H2 = mol_H2O / H2O_H2ratio(fO2_bar, Teq(0))
     mol_CH4 = (mol_h - 2 * mol_H2 - 2 * mol_H2O) / 4
     mol_CO2 = mol_o_atmos - mol_c - mol_H2O + mol_CH4
     mol_CO = mol_CO2 / CO2_COratio(fO2_bar, Teq(0))
     mol_volatiles = mol_H2O + mol_H2 + mol_CO + mol_CO2 + mol_CH4
-    print("all values", mol_H2, mol_CH4, mol_CO2, mol_CO)
     
+    mol_fe_reeq = fe_sil
     # total moles of O available for re-equilibrium
-    mol_o_atmos = mol_fe_reeq + mol_H2O
+    mol_o_atmos = mol_fe_reeq + mol_H2O + mol_CO + mol_CO2 * 2
     # # equilibrium reaction FeO + H2 <--> Fe + H2O occurs
-    val0 = (mol_o_atmos - mol_h / 2) * 1.000000001
-    mol_fe_mo = bisection_search("mol_fe_mo", val0, fe_sil, 1e-3, fe_sil, ni_sil, si_sil, mol_o_atmos, v_sil, mol_mg * h_frac, 0, Teq(0), mol_h, mol_c)
-    mol_fe_metal = mol_fe_reeq - mol_fe_mo
-    mol_H2O = mol_o_atmos - mol_fe_mo
-    mol_H2 = (mol_h - 2 * mol_H2O) / 2
-    conc_fe_mo = mol_fe_mo / (ni_sil + mol_fe_mo + si_sil + v_sil + h_frac * mol_mg)
-    conc_H2O = mol_H2O / (mol_H2O + mol_H2)
-    conc_H2 = mol_H2 / (mol_H2O + mol_H2)
+    val0 = 1e-6
+    mol_fe_mo = bisection_search("mol_fe_mo", val0, fe_sil, 1e-3, fe_sil, ni_sil, si_sil, mol_o_atmos, v_sil, mol_mg * h_frac, mol_h, Teq(0), mol_c)
+    kd_CO2 = Keq_FeO_CO2(T_eq)
+    kd_CH4 = Keq_FeO_CH4(T_eq)
+    kd_H2O = Keq_FeO_H2O(T_eq)
+    mol_fe_metal = mol_fe - mol_fe_mo
+    conc_fe_mo = mol_fe_mo / (mol_ni + mol_fe_mo + mol_si + mol_mg + mol_v)
+    H2O_H2 = kd_H2O * conc_fe_mo
+    # ignore CH4 here because its concentration is low
+    mol_H2 = 1 / (H2O_H2 + 1) * mol_h / 2
+    mol_H2O = (mol_h - 2 * mol_H2) / 2
+    CO2_CO = kd_CO2 * conc_fe_mo
+    mol_CO = 1 / (2 * CO2_CO + 1) * (mol_o - mol_fe_mo - mol_H2O)
+    mol_CO2 = mol_CO * CO2_CO
+    mol_CH4 = mol_c - mol_CO - mol_CO2
+    mol_volatiles = mol_H2O + mol_H2 + mol_CO + mol_CO2 + mol_CH4
+    conc_CH4 = mol_CH4 / mol_volatiles
+    conc_CO = mol_CO / mol_volatiles
+    conc_CO2 = mol_CO2 / mol_volatiles
+    conc_H2 = mol_H2 / mol_volatiles
 
     fO2_reeq = calculate_fugacity(conc_CO2, conc_CO, Keq_FeO_CO2(Teq(0)))
-    # print("ln fO2 CO2_CO", fO2_reeq)
-
+    print("ln fO2 CO2_CO", fO2_reeq)
+    print("proportion of water", mol_H2O / mol_volatiles)
     # allow the Fe metal to go to core and update size of planet
     new_core_mass = convert_moles_to_mass(mols_fe_c, molar_mass_fe) + convert_moles_to_mass(mols_ni_c, molar_mass_ni) + convert_moles_to_mass(mols_si_c, molar_mass_si) + convert_moles_to_mass(mols_v_c, molar_mass_v)
     planet_core_radius = sphere_radius(new_core_mass, rho_core)
-
 
     mols_fe_c += mol_fe_metal
     # update Fe in mantle
