@@ -1,7 +1,7 @@
 from equilibrium import *
 from growth import *
 from atmosredox import H2O_H2ratio, GH2O, fO2_fromIW
-from atmosphere import CO2_COratio, Keq_FeO_H2O, GFeO
+from atmosphere import CO2_COratio, Keq_FeO_H2O, GFeO, CO2H2O_CH4ratio
 
 """This file models the rapid solidification theory. The magma ocean solidifies completely before the next impactor arrives."""
 
@@ -150,47 +150,27 @@ for i in range(10):
 
     # equilibrium reaction 2H2 + O2 <--> 2H2O occurs
     # using fO2 from equilibrium calculate H2O / H2 ratio
-    H2O_H2 = H2O_H2ratio(fO2_bar, Teq(0))
-    mol_H2 = 1 / (1 + H2O_H2) * mol_h / 2
-    mol_H2O = (mol_h - (2 * mol_H2)) / 2
-    # total moles of Fe available for re-equilibrium is number of moles left in MO after impact
-    mol_fe_reeq = fe_sil
+    mol_o_atmos = mol_c * 2 + mol_h / 2
+    mol_H2O = bisection_search_atmosphere(root_bracket_atmosphere(mol_o_atmos, mol_h, mol_c, fO2_bar, Teq(0)), mol_h / 2, 1e-6, mol_o_atmos, mol_h, mol_c, fO2_bar, Teq(0))
+    print("moles of H2O", mol_H2O)
+    mol_H2 = mol_H2O / H2O_H2ratio(fO2_bar, Teq(0))
+    mol_CH4 = (mol_h - 2 * mol_H2 - 2 * mol_H2O) / 4
+    mol_CO2 = mol_o_atmos - mol_c - mol_H2O + mol_CH4
+    mol_CO = mol_CO2 / CO2_COratio(fO2_bar, Teq(0))
+    mol_volatiles = mol_H2O + mol_H2 + mol_CO + mol_CO2 + mol_CH4
+    print("all values", mol_H2, mol_CH4, mol_CO2, mol_CO)
+    
     # total moles of O available for re-equilibrium
     mol_o_atmos = mol_fe_reeq + mol_H2O
     # # equilibrium reaction FeO + H2 <--> Fe + H2O occurs
     val0 = (mol_o_atmos - mol_h / 2) * 1.000000001
-    mol_fe_mo = bisection_search("mol_fe_mo", val0, fe_sil, 1e-3, fe_sil, ni_sil, si_sil, mol_o_atmos, v_sil, mol_mg * h_frac, 0, Teq(0), mol_h)
+    mol_fe_mo = bisection_search("mol_fe_mo", val0, fe_sil, 1e-3, fe_sil, ni_sil, si_sil, mol_o_atmos, v_sil, mol_mg * h_frac, 0, Teq(0), mol_h, mol_c)
     mol_fe_metal = mol_fe_reeq - mol_fe_mo
     mol_H2O = mol_o_atmos - mol_fe_mo
     mol_H2 = (mol_h - 2 * mol_H2O) / 2
     conc_fe_mo = mol_fe_mo / (ni_sil + mol_fe_mo + si_sil + v_sil + h_frac * mol_mg)
     conc_H2O = mol_H2O / (mol_H2O + mol_H2)
     conc_H2 = mol_H2 / (mol_H2O + mol_H2)
-
-    # add metal to core and remove from mantle
-    
-    mol_fe_reeq -= mol_fe_metal
-
-    fO2_reeq = calculate_fugacity(conc_H2O, conc_H2, Keq_FeO_H2O(Teq(0)))
-    # print("ln fO2 H2O_H2", math.log(fO2_reeq))
-
-    # equilibrium reaction 2CO + O2 <--> 2CO2
-    CO2_CO = CO2_COratio(fO2_reeq, Teq(0))
-    mol_CO = 1 / (1 + CO2_CO) * mol_c
-    mol_CO2 = mol_c - mol_CO
-    mol_o_atmos = mol_fe_mo + mol_CO + mol_CO2 * 2
-
-    # FeO + CO <--> Fe + CO2
-    mol_fe_mo = bisection_search("mol_c_mo", root_bracket("mol_c_mo", mol_fe_reeq, ni_sil, si_sil, mol_o_atmos, v_sil, mol_mg * h_frac, 0, Teq(0), mol_c), mol_fe_reeq, 1e-3, mol_fe_reeq, ni_sil, si_sil, mol_o_atmos, v_sil, mol_mg * h_frac, 0, Teq(0), mol_c)
-    
-    mol_fe_metal += mol_fe_reeq - mol_fe_mo
-    mol_carbon_compounds = mol_o - mol_fe_mo
-    conc_fe_mo = mol_fe_mo / (mol_ni + mol_fe_mo + mol_si + mol_v + mol_mg)
-    CO2_CO = Keq_FeO_CO2(Teq(0)) * conc_fe_mo
-    mol_CO = mol_carbon_compounds * 1 / (1 + CO2_CO)
-    mol_CO2 = mol_carbon_compounds - mol_CO
-    conc_CO = mol_CO / (mol_CO + mol_CO2)
-    conc_CO2 = mol_CO2 / (mol_CO + mol_CO2)
 
     fO2_reeq = calculate_fugacity(conc_CO2, conc_CO, Keq_FeO_CO2(Teq(0)))
     # print("ln fO2 CO2_CO", fO2_reeq)
@@ -199,7 +179,7 @@ for i in range(10):
     new_core_mass = convert_moles_to_mass(mols_fe_c, molar_mass_fe) + convert_moles_to_mass(mols_ni_c, molar_mass_ni) + convert_moles_to_mass(mols_si_c, molar_mass_si) + convert_moles_to_mass(mols_v_c, molar_mass_v)
     planet_core_radius = sphere_radius(new_core_mass, rho_core)
 
-    
+
     mols_fe_c += mol_fe_metal
     # update Fe in mantle
     mol_fe -= mol_fe_metal

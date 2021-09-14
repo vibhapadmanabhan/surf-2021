@@ -1,7 +1,8 @@
+from atmosredox import H2O_H2ratio
 import math
 import numpy as np
 import matplotlib.pyplot as plt
-from atmosphere import Keq_FeO_H2O, Keq_FeO_CO2
+from atmosphere import CO2H2O_CH4ratio, CO2_COratio, Keq_FeO_H2O, Keq_FeO_CO2, Keq_FeO_CH4, Keq_CH4, Keq_O2_CO2, Keq_H2_H2O
 from numba import jit, njit, float32
 
 # constants
@@ -167,8 +168,51 @@ def solve_CO2_atmosphere(mol_fe_mo, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg
     # print("kd error CO2", conc_CO2 / conc_CO / conc_fe_mo - actual_kd)
     return conc_CO2 / conc_CO / conc_fe_mo - actual_kd
 
-
 @njit
+def solve_atmosphere(mol_fe_mo, mol_fe, mol_ni, mol_si, mol_o, fO2, mol_mg, P_eq, T_eq, aux):
+    """*args:
+    args[0] should be mol_h
+    args[1] should be mol_c
+    """
+    mol_h = P_eq
+    mol_c = aux
+    kd_CO2 = Keq_FeO_CO2(T_eq)
+    kd_CH4 = Keq_FeO_CH4(T_eq)
+    kd_H2O = Keq_FeO_H2O(T_eq)
+    mol_fe_metal = mol_fe - mol_fe_mo
+    conc_fe_mo = mol_fe_mo / (mol_ni + mol_fe_mo + mol_si + mol_mg)
+    CO2_CO = kd_CO2 * conc_fe_mo
+    mol_CO = 1 / (2 * CO2_CO + 1) * (mol_o - mol_fe_mo - mol_H2O)
+    mol_CO2 = mol_CO * CO2_CO
+    mol_CH4 = mol_c - mol_CO - mol_CO2
+    H2O_H2 = kd_H2O * conc_fe_mo
+    mol_H2 = 1 / (H2O_H2 + 1) * mol_h / 2
+    mol_H2O = (mol_h - 2 * mol_H2) / 2
+    mol_volatiles = mol_H2O + mol_H2 + mol_CO + mol_CO2 + mol_CH4
+    conc_CH4 = mol_CH4 / mol_volatiles
+    conc_CO = mol_CO / mol_volatiles
+    conc_H2 = mol_H2 / mol_volatiles
+    return conc_CO * conc_H2**2 / conc_fe_mo / conc_CH4 - kd_CH4
+    
+
+def solve_initial_atmosphere(mol_H2O, mol_o_atmos, mol_h, mol_c, fO2, T_eq):
+    """
+    Solves for initial amounts of all species, given fO2:
+    CO + 0.5 O2 <--> CO2
+    CH4 + 2 O2 <--> CO2 + 2H2O
+    H2 + 0.5 O2 <--> H2O
+    """
+    mol_H2 = mol_H2O / H2O_H2ratio(fO2, T_eq)
+    mol_CH4 = (mol_h - 2 * mol_H2 - 2 * mol_H2O) / 4
+    mol_CO2 = mol_o_atmos - mol_c - mol_H2O + mol_CH4
+    mol_CO = mol_CO2 / CO2_COratio(fO2, T_eq)
+    mol_volatiles = mol_H2O + mol_H2 + mol_CO + mol_CO2 + mol_CH4
+    conc_CO2 = mol_CO2 / mol_volatiles
+    conc_H2O = mol_H2O / mol_volatiles
+    conc_CH4 = mol_CH4 / mol_volatiles
+    return conc_CO2 * conc_H2O**2 / conc_CH4 - CO2H2O_CH4ratio(fO2, T_eq)
+
+# @njit
 def root_bracket(metal, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, aux):
     """Finds the lower/upper bound of an interval that can be used for the bisection search."""
     if metal == "fe":
@@ -197,6 +241,16 @@ def root_bracket(metal, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq
         return val
 
 
+def root_bracket_atmosphere(mol_o_atmos, mol_h, mol_c, fO2, T_eq):
+    val = 1e-6
+    print("beginning", solve_initial_atmosphere(val, mol_o_atmos, mol_h, mol_c, fO2, T_eq))
+    upper_bound = H2O_H2ratio(fO2, T_eq) * mol_h / 2 / (1 + H2O_H2ratio(fO2, T_eq))
+    FB = solve_initial_atmosphere(upper_bound, mol_o_atmos, mol_h, mol_c, fO2, T_eq)
+    print("upper bound", FB)
+    while val < upper_bound and FB * solve_initial_atmosphere(val, mol_o_atmos, mol_h, mol_c, fO2, T_eq) > 0:
+        val *= 1.00000000001
+    print("val", val)
+    return val
 
 def bisection_search(metal, a, b, eps, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, aux):
     """Aux refers to either fe_metal, v_metal, or mol_h, depending on which function kd(Si-Fe) or kd(V-Fe) is being searched for the root."""
@@ -208,6 +262,8 @@ def bisection_search(metal, a, b, eps, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol
         func = solve_H2O_atmosphere
     elif (metal == "mol_c_mo"):
         func = solve_CO2_atmosphere
+    elif (metal == "atmos_initial"):
+        func = solve_initial_atmosphere
     while True:
         FA = func(a, mol_fe, mol_ni, mol_si, mol_o,
                   mol_v, mol_mg, P_eq, T_eq, aux)
@@ -222,6 +278,24 @@ def bisection_search(metal, a, b, eps, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol
             b = elem_metal
     return elem_metal
 
+
+def bisection_search_atmosphere(a, b, eps, mol_o_atmos, mol_h, mol_c, fO2, T_eq):
+    while True:
+        FA = solve_initial_atmosphere(a, mol_o_atmos, mol_h, mol_c, fO2, T_eq)
+        # print("FA", FA)
+        elem_metal = (a + b) / 2
+        FP = solve_initial_atmosphere(elem_metal, mol_o_atmos, mol_h, mol_c, fO2, T_eq)
+
+        # print("new value", FP)
+        if np.abs(FP) <= eps:  # close enough to true value
+            break
+        if FA * FP > 0:
+            a = elem_metal
+            print("a", a)
+        else:
+            b = elem_metal
+            print("b", b)
+    return elem_metal
 
 def calculate_ln_o_iw_fugacity(X_FeO, X_Fe):
     return 2 * math.log(X_FeO / X_Fe)
