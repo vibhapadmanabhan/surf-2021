@@ -2,27 +2,45 @@ from atmosredox import H2O_H2ratio
 import math
 import numpy as np
 import matplotlib.pyplot as plt
-from atmosphere import CO2H2O_CH4ratio, CO2_COratio, Keq_FeO_H2O, Keq_FeO_CO2, Keq_FeO_CH4, Keq_CH4, Keq_O2_CO2, Keq_H2_H2O
+from atmosphere import CO2H2O_CH4ratio, CO2_COratio, Keq_FeO_H2O, Keq_FeO_CO2, Keq_FeO_CH4
 from numba import jit, njit, float32
+# from growth import Peq, Teq, calculate_g, core_radius, calculate_shell_vol, calculate_vol
 
 # constants
 r_planet = 4500 * 1E3  # m
 rho_mantle = 3000
 rho_core = 8000
 
-# P_eq = 0.7 * 25 # in GPa, assuming P_eq = 0.7 * P_cmb. CMB pressure depends on size of the planet.
-T_eq = 4000
-P_eq = 0.7 * 25  # GPa
+planet_mantle_depth = 300 * 1E3  # assumed
 
-# Mantle composition: chondritic, in wt%, ignoring trace elements and Ni, Fe.
-si = 10.7
-fe_s = 0
-v = 0.00606
-mg = 9.54
+# core_radius = core_radius(r_planet)
+# mantle_mass = calculate_shell_vol(r_planet - core_radius, r_planet)
+# core_mass = calculate_vol(core_radius) * rho_core
+# P_eq = Peq(calculate_g(mantle_mass + core_mass), planet_mantle_depth) # GPa
+# T_eq = Teq(P_eq)
 
-# Core composition, in wt%
+
+# starting mantle composition of oxygen-free elements, and oxygen, in wt% (assuming FeO is 8 wt%, MgO is 42 wt%, SiO2 is 50 - 0.00606 wt%, V is 0.00606 wt%). From Lyubetskaya and Korenaga, then scaled to 100. About 8% of mass was missing without scaling. 1 : 1.0868
+scale_factor = 1.08# 68
+fe_s = 6.22 * scale_factor # FeO wt% = 8.00
+mg_s = 23.41 * scale_factor # 38.82
+si_s = 21.09 * scale_factor # 45.19
+ni_s = 0
+v_s = 0.00606
+
+# from Hirschmann 2009 assuming most water rich starting composition
+h_s = 0.01
+c_s = 0.01
+
+# rest is oxygen
+o_s = 100 - fe_s - mg_s - si_s - ni_s - v_s - h_s - c_s
+
+
+# starting core composition
 fe = 85
 ni = 15
+si = 0
+v = 0
 
 # molar masses (g / mol)
 molar_mass_fe = 55.8
@@ -33,8 +51,6 @@ molar_mass_v = 50.9415
 molar_mass_mg = 24.3
 molar_mass_h = 1
 molar_mass_c = 12
-
-planet_mantle_depth = 300 * 1E3  # assumed
 
 
 def calculate_impactor_core_radius(impactor_radius):
@@ -95,7 +111,10 @@ def calculate_kd(metal, T, P, a, b, c):
 def f(fe_metal, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, v_metal):
     """
     Returns the difference between the actual value of K_d(Si-Fe) and calculated value for K_d(Si-Fe). (Root of function will be found at the 
-    correct value of K_d)
+    correct value of K_d). The equilibrium reactions occurring are:
+
+    2 Fe + SiO2 <--> 2 FeO + Si
+    2 Ni + SiO2 <--> 2 NiO + Si
     """
     actual_kd_ni = calculate_kd("ni", T_eq, P_eq, 1.06, 1553, -98)
     actual_kd_si = calculate_kd("si", T_eq, P_eq, 2.98, -15934, 0.)
@@ -129,76 +148,12 @@ def g(v_metal, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, fe_meta
     conc_fe_metal = fe_metal / (fe_metal + ni_metal + si_metal + v_metal)
     conc_fe_sil = fe_sil / (fe_sil + ni_sil + si_sil + mol_v - v_metal + mol_mg)
     return conc_v_metal * conc_fe_sil**(3 / 2) / conc_v_sil / conc_fe_metal**(3 / 2) - actual_kd_v
-
-
-@njit
-def solve_H2O_atmosphere(mol_fe_mo, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, mol_h):
-    """
-    Returns the difference between the actual value of K_d(FeO - H2O) and calculated value for K_d(FeO - H2O). (Root of function will be found at the 
-    correct value of K_d)
-
-    Reaction is FeO + H2 <--> Fe + H2O
-    """
-    actual_kd = Keq_FeO_H2O(T_eq)
-    mol_H2O = mol_o - mol_fe_mo
-    mol_H2 = (mol_h - 2 * mol_H2O) / 2
-    # print("mol h2", mol_H2)
-    conc_fe_mo = mol_fe_mo / (mol_ni + mol_fe_mo + mol_si + mol_v + mol_mg)
-    conc_H2O = mol_H2O / (mol_H2O + mol_H2)
-    conc_H2 = mol_H2 / (mol_H2O + mol_H2)
-    # print("kd error", conc_H2O / conc_H2 / conc_fe_mo - actual_kd)
-    return conc_H2O / conc_H2 / conc_fe_mo - actual_kd
-
-@njit
-def solve_CO2_atmosphere(mol_fe_mo, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, mol_c):
-    """
-    Returns the difference between the actual value of K_d(FeO - CO2) and calculated value for K_d(FeO - CO2). (Root of function will be found at the 
-    correct value of K_d).
-
-    Reaction is FeO + CO <--> Fe + CO2
-    """
-    actual_kd = Keq_FeO_CO2(T_eq)
-    mol_carbon_compounds = mol_o - mol_fe_mo
-    conc_fe_mo = mol_fe_mo / (mol_ni + mol_fe_mo + mol_si + mol_v + mol_mg)
-    CO2_CO = actual_kd * conc_fe_mo
-    mol_CO = mol_carbon_compounds * 1 / (1 + CO2_CO)
-    mol_CO2 = mol_carbon_compounds - mol_CO
-    conc_CO = mol_CO / (mol_CO + mol_CO2)
-    conc_CO2 = mol_CO2 / (mol_CO + mol_CO2)
-    # print("kd error CO2", conc_CO2 / conc_CO / conc_fe_mo - actual_kd)
-    return conc_CO2 / conc_CO / conc_fe_mo - actual_kd
-
-@njit
-def solve_atmosphere(mol_fe_mo, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, mol_h, T_eq, mol_c):
-    """
-    FeO + CO <--> Fe + CO2
-    FeO + CH4 <--> Fe + CO + 2 H2
-    FeO + H2 <--> Fe + H2O
-    """
-    kd_CO2 = Keq_FeO_CO2(T_eq)
-    kd_CH4 = Keq_FeO_CH4(T_eq)
-    kd_H2O = Keq_FeO_H2O(T_eq)
-    mol_fe_metal = mol_fe - mol_fe_mo
-    conc_fe_mo = mol_fe_mo / (mol_ni + mol_fe_mo + mol_si + mol_mg + mol_v)
-    H2O_H2 = kd_H2O * conc_fe_mo
-    # ignore CH4 here because its concentration is low
-    mol_H2 = 1 / (H2O_H2 + 1) * mol_h / 2
-    mol_H2O = (mol_h - 2 * mol_H2) / 2
-    CO2_CO = kd_CO2 * conc_fe_mo
-    mol_CO = 1 / (2 * CO2_CO + 1) * (mol_o - mol_fe_mo - mol_H2O)
-    mol_CO2 = mol_CO * CO2_CO
-    # mol_CH4 = mol_c - mol_CO - mol_CO2
-    mol_volatiles = mol_H2O + mol_H2 + mol_CO + mol_CO2 # + mol_CH4
-    # conc_CH4 = mol_CH4 / mol_volatiles
-    conc_CO = mol_CO / mol_volatiles
-    conc_CO2 = mol_CO2 / mol_volatiles
-    conc_H2 = mol_H2 / mol_volatiles
-    return conc_CO2 / conc_fe_mo / conc_CO - kd_CO2
     
 
 def solve_initial_atmosphere(mol_H2O, mol_o_atmos, mol_h, mol_c, fO2, T_eq):
     """
-    Solves for initial amounts of all species, given fO2:
+    Solves for initial amounts of all species, given fO2, where equilibria are governed by the following reactions:
+
     CO + 0.5 O2 <--> CO2
     CH4 + 2 O2 <--> CO2 + 2H2O
     H2 + 0.5 O2 <--> H2O
@@ -213,7 +168,39 @@ def solve_initial_atmosphere(mol_H2O, mol_o_atmos, mol_h, mol_c, fO2, T_eq):
     conc_CH4 = mol_CH4 / mol_volatiles
     return conc_CO2 * conc_H2O**2 / conc_CH4 - CO2H2O_CH4ratio(fO2, T_eq)
 
-# @njit
+
+@njit
+def solve_atmosphere(mol_fe_mo, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, mol_h):
+    """
+    By finding the difference between the actual Kd(FeO - CH4) and calculated Kd(FeO - CH4), solves for FeO, Fe, CO, CO2, H2, H2O molar amounts during re-equilibrium governed by the following equations:
+
+    FeO + CO <--> Fe + CO2
+    FeO + CH4 <--> Fe + CO + 2 H2
+    FeO + H2 <--> Fe + H2O
+
+    CH4 is ignored due to its low concentration.
+    """
+    kd_CO2 = Keq_FeO_CO2(T_eq)
+    # kd_CH4 = Keq_FeO_CH4(T_eq)
+    kd_H2O = Keq_FeO_H2O(T_eq)
+    mol_fe_metal = mol_fe - mol_fe_mo
+    conc_fe_mo = mol_fe_mo / (mol_ni + mol_fe_mo + mol_si + mol_mg + mol_v)
+    H2O_to_H2 = kd_H2O * conc_fe_mo
+    # ignore CH4 here because its concentration is low
+    mol_H2 = 1 / (H2O_to_H2 + 1) * mol_h / 2
+    mol_H2O = (mol_h - 2 * mol_H2) / 2
+    CO2_to_CO = kd_CO2 * conc_fe_mo
+    mol_CO = 1 / (2 * CO2_to_CO + 1) * (mol_o - mol_fe_mo - mol_H2O)
+    mol_CO2 = mol_CO * CO2_to_CO
+    # mol_CH4 = mol_c - mol_CO - mol_CO2
+    mol_volatiles = mol_H2O + mol_H2 + mol_CO + mol_CO2
+    # conc_CH4 = mol_CH4 / mol_volatiles
+    conc_CO = mol_CO / mol_volatiles
+    conc_CO2 = mol_CO2 / mol_volatiles
+
+    return conc_CO2 / conc_fe_mo / conc_CO - kd_CO2
+
+@njit
 def root_bracket(metal, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, aux):
     """Finds the lower/upper bound of an interval that can be used for the bisection search."""
     if metal == "fe":
@@ -232,27 +219,6 @@ def root_bracket(metal, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq
             val *= 1.0001
         return val
 
-    # elif metal == "mol_c_mo":
-    #     val = mol_fe
-    #     FB = solve_H2O_atmosphere(val, mol_fe, mol_ni, mol_si, mol_o,
-    #            mol_v, mol_mg, P_eq, T_eq, aux)
-    #     while val > 0 and FB * solve_CO2_atmosphere(val, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, aux) > 0:
-    #         val /= 1.0000001
-    #     # print("val", val)
-    #     return val
-
-
-# def root_bracket_atmosphere(mol_o_atmos, mol_h, mol_c, fO2, T_eq):
-#     val = 1e-16
-#     print("beginning", solve_initial_atmosphere(val, mol_o_atmos, mol_h, mol_c, fO2, T_eq))
-#     print("ratio", H2O_H2ratio(fO2, T_eq))
-#     upper_bound = H2O_H2ratio(fO2, T_eq) * mol_h / 2 / (1 + H2O_H2ratio(fO2, T_eq))
-#     FB = solve_initial_atmosphere(upper_bound, mol_o_atmos, mol_h, mol_c, fO2, T_eq)
-#     print("upper bound", FB)
-#     while val < upper_bound and FB * solve_initial_atmosphere(val, mol_o_atmos, mol_h, mol_c, fO2, T_eq) > 0:
-#         val *= 1.00000000001
-#     print("val", val)
-#     return val
 
 def bisection_search(metal, a, b, eps, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, aux):
     """Aux refers to either fe_metal, v_metal, or mol_h, depending on which function kd(Si-Fe) or kd(V-Fe) is being searched for the root."""
@@ -262,8 +228,6 @@ def bisection_search(metal, a, b, eps, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol
         func = g
     elif (metal == "mol_fe_mo"):
         func = solve_atmosphere
-    # elif (metal == "mol_c_mo"):
-    #     func = solve_CO2_atmosphere
     elif (metal == "atmos_initial"):
         func = solve_initial_atmosphere
     while True:
@@ -272,6 +236,7 @@ def bisection_search(metal, a, b, eps, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol
         elem_metal = (a + b) / 2
         FP = func(elem_metal, mol_fe, mol_ni, mol_si,
                   mol_o, mol_v, mol_mg, P_eq, T_eq, aux)
+
         if np.abs(FP) <= eps:  # close enough to true value
             break
         if FA * FP > 0:
@@ -282,9 +247,9 @@ def bisection_search(metal, a, b, eps, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol
 
 
 def bisection_search_atmosphere(a, b, eps, mol_o_atmos, mol_h, mol_c, fO2, T_eq):
+    """Solves for the molar amount of H2O in the atmosphere after equilibrium, given the fO2."""
     while True:
         FA = solve_initial_atmosphere(a, mol_o_atmos, mol_h, mol_c, fO2, T_eq)
-        # print("FA", FA)
         elem_metal = (a + b) / 2
         FP = solve_initial_atmosphere(elem_metal, mol_o_atmos, mol_h, mol_c, fO2, T_eq)
 
@@ -297,7 +262,9 @@ def bisection_search_atmosphere(a, b, eps, mol_o_atmos, mol_h, mol_c, fO2, T_eq)
     return elem_metal
 
 def calculate_ln_o_iw_fugacity(X_FeO, X_Fe):
+    """Calculates fO2 - IW"""
     return 2 * math.log(X_FeO / X_Fe)
 
 def calculate_fugacity(X_prod, X_reag, Keq):
+    """Calculates fO2"""
     return (X_prod / X_reag / Keq)**2

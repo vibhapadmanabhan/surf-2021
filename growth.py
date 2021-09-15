@@ -7,22 +7,11 @@ r_planet = 100 * 1e3
 k = 3.926763924239811e-12 # using Mars' mass-g relationship
 G = 6.674e-11
 
-# starting mantle composition of oxygen-free elements, and oxygen, in wt% (assuming FeO is 8 wt%, MgO is 42 wt%, SiO2 is 50 - 0.00606 wt%, V is 0.00606 wt%)
-fe_s = 2.5 # 6.2172
-mg_s = 25.325 + (3.2172 + 0.5) / 2
-si_s = 23.33 + (3.2172 + 0.5) / 2
-ni_s = 0
-v_s = 0.00606
-h_s = 0.05 / 18 * 2
-c_s = 0.05 / 40 * 12
-o_s = 100 - fe_s - mg_s - si_s - ni_s - v_s - h_s - c_s
 
-# starting core composition in wt%
-fe = 85
-ni = 15
-si = 0
-v = 0
-
+# constants for metal pond timescale equation
+rho_2 = 8000 # kg m^-3
+mu_1 = 3 * 1e19 # Pa s
+mu_2 = 10 # Pa s
 # lists
 
 # chemical
@@ -46,6 +35,7 @@ planet_size = []
 impactor_size = []
 mantle_depth = []
 fO2 = []
+metal_pond_lifetime = []
 
 
 def calculate_g(M_p):
@@ -159,3 +149,10 @@ def save_data(X_Fe, X_Si, X_Ni, X_Va, X_FeO, X_SiO2, X_NiO, X_Mg, X_VO, X_FeO_im
     df["ln(fO2)_IW"] = fO2
     df["FeO wt\% in impactor"] = X_FeO_impactor
     df.to_csv(filename, sep='\t', index=False)
+
+def metal_pond_timescale(r1, r2, mantle_solid_depth, planet_core_radius):
+    """Return metal pond timescale in kyr."""
+    solid_mantle_core_mass = calculate_vol(planet_core_radius) * 8000 + calculate_shell_vol(mantle_solid_depth, planet_core_radius + mantle_solid_depth) * 3000
+    rho_1 = solid_mantle_core_mass / calculate_vol(planet_core_radius + mantle_solid_depth)
+    sigma = 10**(-10.13) * r1**1.86 * (rho_2 - rho_1)**1.3 * rho_1**0.87 * (r2 - r1)**0.047 * mu_1**(-0.98) * mu_2**(-0.054)
+    return 1 / sigma / 3600 / 24 / 365 / 1000

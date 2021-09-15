@@ -1,9 +1,13 @@
 from equilibrium import *
 from growth import *
+
+
 """This file models the deep magma ocean concept. The depth of the MO is always 70% the depth of the mantle."""
 
 planet_core_radius = core_radius(r_planet)
-# in the planet
+
+
+# molar amounts of elements in planetesimal's mantle
 mol_fe = 1000 * fe_s * 0.01 * ocean_mass(r_planet, r_planet - planet_core_radius) / (molar_mass_fe)
 mol_ni = 1000 * ni_s * 0.01 * ocean_mass(r_planet, r_planet - planet_core_radius) / (molar_mass_ni)
 mol_si = 1000 * si_s * 0.01 * ocean_mass(r_planet, r_planet - planet_core_radius) / (molar_mass_si)
@@ -11,30 +15,25 @@ mol_mg = 1000 * mg_s * 0.01 * ocean_mass(r_planet, r_planet - planet_core_radius
 mol_v = 1000 * v_s * 0.01 * ocean_mass(r_planet, r_planet - planet_core_radius) / (molar_mass_v)
 mol_o = 1000 * o_s * 0.01 * ocean_mass(r_planet, r_planet - planet_core_radius) / (molar_mass_o)
 
+
+# molar amounts of elements in planetesimal's core
 mols_si_c = 1000 * si * 0.01 * calculate_vol(planet_core_radius) * rho_core / molar_mass_si
 mols_v_c = 1000 * v * 0.01 * calculate_vol(planet_core_radius) * rho_core / molar_mass_v
 mols_ni_c = 1000 * ni * 0.01 * calculate_vol(planet_core_radius) * rho_core / molar_mass_ni
 mols_fe_c = 1000 * fe * 0.01 * calculate_vol(planet_core_radius) * rho_core / molar_mass_fe
 
-v_metal = 0
-# fe_s = [i for i in range(20)]
-# si_s = [(54 - 0.00606 - i / 2) / (molar_mass_si + molar_mass_o * 2) * molar_mass_si for i in fe_s]
-# mg_s = [(46 - i / 2) / (molar_mass_mg + molar_mass_o) * molar_mass_mg for i in fe_s]
-# o_s = []
-# for i in range(len(fe_s)):
-#     o_s.append(100 - fe_s[i] - mg_s[i] - si_s[i] - v_s)
 
-# j = 0
-# fe_s = 17.48
-# si_s = (54 - 0.00606 - fe_s / 2) / (molar_mass_si + molar_mass_o * 2) * molar_mass_si
-# mg_s = (46 - fe_s / 2) / (molar_mass_mg + molar_mass_o) * molar_mass_mg
-# o_s = 100 - fe_s - mg_s - si_s - v_s
+# set to 0.
+v_metal = 0
 j = 0
-while r_planet <= 6378e3:
+
+
+while r_planet <= 1000e3: 
     print(j)
     planet_size.append(r_planet)
     X_FeO_impactor.append(fe_s)
-    # growing in size
+
+    # calculate delivered amounts of material
     r_impactor = r_planet / 5
     impactor_size.append(r_impactor)
     c_impactor = core_radius(r_impactor)
@@ -45,14 +44,22 @@ while r_planet <= 6378e3:
     delivered_mg = 1000 * mg_s * 0.01 * ocean_mass(r_impactor, r_impactor - c_impactor) / molar_mass_mg
     delivered_v = 1000 * v_s * 0.01 * ocean_mass(r_impactor, r_impactor - c_impactor) / molar_mass_v
     delivered_o = 1000 * o_s * 0.01 * ocean_mass(r_impactor, r_impactor - c_impactor) / molar_mass_o
+
+    # h_frac is the fraction of the mantle that is molten (magma ocean). 
     h_frac = calculate_shell_vol(0.7 * (r_planet - planet_core_radius), r_planet) / calculate_shell_vol(r_planet - planet_core_radius, r_planet)
 
+    # calculate the mass of the planet
     planet_mass = convert_moles_to_mass(mol_fe, molar_mass_fe) + convert_moles_to_mass(mol_ni, molar_mass_ni) + convert_moles_to_mass(mol_si, molar_mass_si) + convert_moles_to_mass(mol_v, molar_mass_v) + convert_moles_to_mass(mol_o, molar_mass_o) + convert_moles_to_mass(mol_mg, molar_mass_mg) + convert_moles_to_mass(mols_fe_c, molar_mass_fe) + convert_moles_to_mass(mols_ni_c, molar_mass_ni) + convert_moles_to_mass(mols_si_c, molar_mass_si) + convert_moles_to_mass(mols_v_c, molar_mass_v)
+
+    # and its gravitational acceleration
     g_acc = calculate_g(planet_mass)
     gravity.append(g_acc)
     
-    mantle_mass = convert_moles_to_mass(mol_fe, molar_mass_fe) + convert_moles_to_mass(mol_ni, molar_mass_ni) + convert_moles_to_mass(mol_si, molar_mass_si) + convert_moles_to_mass(mol_v, molar_mass_v) + convert_moles_to_mass(mol_o, molar_mass_o) + convert_moles_to_mass(mol_mg, molar_mass_mg)
-    h = shell_width_from_outer(mantle_mass, 3000, r_planet)
+
+    # calculate compounds already present in mantle up till melted depth assuming a homogeneous mantle
+    # mantle_mass = convert_moles_to_mass(mol_fe, molar_mass_fe) + convert_moles_to_mass(mol_ni, molar_mass_ni) + convert_moles_to_mass(mol_si, molar_mass_si) + convert_moles_to_mass(mol_v, molar_mass_v) + convert_moles_to_mass(mol_o, molar_mass_o) + convert_moles_to_mass(mol_mg, molar_mass_mg)
+    h = 0.7 * (r_planet - planet_core_radius)
+
 
     # calculate compounds already present in mantle up till melted depth assuming homogeneous mantle
     mol_si_MO = h_frac * mol_si
@@ -72,17 +79,21 @@ while r_planet <= 6378e3:
     mol_mg_MO += delivered_mg
     mol_fe_MO = mol_FeO_MO + delivered_fe
     mol_o_MO += delivered_o
+
     # Mg and O aren't partitioned into the core, so simply add moles delivered to total moles in the mantle.
     mol_mg += delivered_mg
     mol_o += delivered_o
 
-    # equilibrium and mass balance
-    P_eq = Peq(g_acc, h) / 1e9
+
+    # calculate current pressure and temperature
+    P_eq = Peq(g_acc, h)
     # pressure.append(P_eq)
     T_eq = Teq(P_eq * 1e9)
     # temperature.append(T_eq)
-    # small error due to exclusion of delta h from volume of impactor mantle (does not change results)
-    fe_metal = bisection_search("fe", root_bracket("fe", mol_fe_MO, mol_ni_MO, mol_si_MO, mol_o_MO, mol_v_MO, mol_mg_MO, P_eq, T_eq, v_metal), mol_fe_MO, 10e-12, mol_fe_MO, mol_ni_MO, mol_si_MO, mol_o_MO, mol_v_MO, mol_mg_MO, P_eq, T_eq, v_metal)
+
+
+    # Solve using equilibrium and mass balance equations for the amount of iron in metal phase.
+    fe_metal = bisection_search("fe", root_bracket("fe", mol_fe_MO, mol_ni_MO, mol_si_MO, mol_o_MO, mol_v_MO, mol_mg_MO, P_eq, T_eq, v_metal), mol_fe_MO, 1e-2, mol_fe_MO, mol_ni_MO, mol_si_MO, mol_o_MO, mol_v_MO, mol_mg_MO, P_eq, T_eq, v_metal)
     fe_sil = mol_fe_MO - fe_metal
     actual_kd_ni = calculate_kd("ni", T_eq, P_eq, 1.06, 1553, -98)
     actual_kd_si = calculate_kd("si", T_eq, P_eq, 2.98, -15934, 0)
@@ -92,7 +103,17 @@ while r_planet <= 6378e3:
     si_metal = mol_si_MO - si_sil
     v_metal = bisection_search("v", 0, root_bracket('v', mol_fe_MO, mol_ni_MO, mol_si_MO, mol_o_MO, mol_v_MO, mol_mg_MO, P_eq, T_eq, fe_metal), 10e-12, mol_fe_MO, mol_ni_MO, mol_si_MO, mol_o_MO, mol_v_MO, mol_mg_MO, P_eq, T_eq, fe_metal)
     v_sil = mol_v_MO - v_metal
-    # add moles in metal phase to total moles of each element in the core
+
+    mantle_solid_depth = r_planet - planet_core_radius - h
+    metal_pond_depth = shell_width(fe_metal, 8000, planet_core_radius + mantle_solid_depth)
+    r1 = planet_core_radius + mantle_solid_depth
+    r2 = r1 + metal_pond_depth
+    print("metal pond thickness in km", metal_pond_depth / 1e3)
+    pond_timescale = metal_pond_timescale(r1, r2, mantle_solid_depth, planet_core_radius)
+
+    metal_pond_lifetime.append(pond_timescale)
+    print("pond timescale", pond_timescale)
+    # # add moles in metal phase to total moles of each element in the melt pond (which eventually sinks down into the planetary core)
     mols_fe_c += fe_metal
     mols_ni_c += ni_metal
     mols_si_c += si_metal
@@ -104,6 +125,7 @@ while r_planet <= 6378e3:
     mol_si += si_sil - mol_si * h_frac
     mol_v += v_sil - mol_v * h_frac
 
+
     # calculate new mantle and core mass
     new_mantle_mass = convert_moles_to_mass(fe_sil, molar_mass_fe) + convert_moles_to_mass(ni_sil, molar_mass_ni) + convert_moles_to_mass(si_sil, molar_mass_si) + convert_moles_to_mass(v_sil, molar_mass_v) + convert_moles_to_mass(mol_o, molar_mass_o) + convert_moles_to_mass(mol_mg, molar_mass_mg)
     new_core_mass = convert_moles_to_mass(mols_fe_c, molar_mass_fe) + convert_moles_to_mass(mols_ni_c, molar_mass_ni) + convert_moles_to_mass(mols_si_c, molar_mass_si) + convert_moles_to_mass(mols_v_c, molar_mass_v)
@@ -114,17 +136,14 @@ while r_planet <= 6378e3:
     mantle_depth.append(new_mantle_depth)
     r_planet = planet_core_radius + new_mantle_depth
 
-    # change impactor composition
-    # fe_s -= 0.02
-    # si_s = (54 - 0.00606 - fe_s / 2) / (molar_mass_si + molar_mass_o * 2) * molar_mass_si
-    # mg_s = (46 - fe_s / 2) / (molar_mass_mg + molar_mass_o) * molar_mass_mg
-    # o_s = 100 - fe_s - mg_s - si_s - v_s
 
-    # calculate fugacity
+    # calculate ln fO2 - IW
     X_FeO.append(fe_sil / (fe_sil + ni_sil + si_sil + v_sil / 2 + mol_mg * h_frac))
     # X_Fe.append(mols_fe_c / (mols_fe_c + mols_si_c + mols_ni_c + mols_v_c))
     X_Fe.append(fe_metal / (ni_metal + si_metal + fe_metal + v_metal))
     fO2.append(calculate_ln_o_iw_fugacity(X_FeO[-1], X_Fe[-1]))
+    # print(fO2[-1])
+
 
     # track other values
     # X_Si.append(mols_si_c / (mols_fe_c + mols_v_c + mols_ni_c + mols_si_c))
@@ -136,6 +155,7 @@ while r_planet <= 6378e3:
     X_VO.append(v_sil * 2 / (fe_sil + ni_sil + si_sil + v_sil / 2 + mol_mg * h_frac))
     X_Mg.append(mol_mg * h_frac / (fe_sil + ni_sil + si_sil + v_sil / 2 + mol_mg * h_frac))
     j += 1
+
 
 feo_wt_percents = [i * (molar_mass_fe + molar_mass_o) * (mol_fe + mol_ni + mol_si + mol_v / 2 + mol_mg)/ 1000 / new_mantle_mass for i in X_FeO[-10:]]
 print(feo_wt_percents)
