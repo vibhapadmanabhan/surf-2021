@@ -50,6 +50,7 @@ def save_data(X_Fe, X_Si, X_Ni, X_Va, X_FeO, X_SiO2, X_NiO, X_Mg, X_VO, X_FeO_im
     df["FeO wt\% in impactor"] = X_FeO_impactor
     df.to_csv(filename, sep='\t', index=False)
 
+
 def metal_pond_timescale(r1, r2, mantle_solid_depth, planet_core_radius):
     """Return metal pond timescale in kyr."""
     solid_mantle_core_mass = calculate_vol(planet_core_radius) * 8000 + calculate_shell_vol(mantle_solid_depth, planet_core_radius + mantle_solid_depth) * 3000

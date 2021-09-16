@@ -1,6 +1,7 @@
 import math
 from densities import *
 
+
 def body_mass(r_body, core_radius):
     return 4 / 3 * math.pi * (core_radius**3 * rho_core + (r_body - core_radius)**3 * rho_mantle)
 

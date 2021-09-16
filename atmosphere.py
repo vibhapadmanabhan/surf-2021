@@ -1,6 +1,21 @@
 import numpy as np
-from atmosredox import *
 from numba import njit, jit, float32
+
+R   = 8.31446  # universal gas constant
+
+
+def fO2_fromIW(fO2_dIW, T):
+    ''' convert fO2 in terms of [bar]. The relation ln(fO2) = 2 ln(xFeO/xFe) shows the value in terms of [difference from IW] (by Yoshi Miyazaki)'''
+
+    # log10(fO2) is -12 at 1200 degC, -8 at 1700 degC.
+    # assume a log-linear relationship for now
+    fO2_IW = 10**(-12 + (T-1473.15)/500*4.)
+
+    # convert
+    fO2    = fO2_IW * fO2_dIW
+
+    return fO2
+
 
 # Gibbs free energies of formation fit with a linear regression using data on JANAF database
 @jit(nopython=True)
@@ -16,6 +31,14 @@ def GCO2(T):
 
 
 @jit(nopython=True)
+def GH2O(Tin):
+    ''' dG (J/mol) as a function of T. Data taken from JANAF database and fit using a linear regression (by Yoshi Miyazaki)'''
+    dG = 0.0547*Tin - 246.56   # in kJ/mol. Tin is in [K].
+
+    return dG*1e3  # in J/mol.
+
+
+@jit(nopython=True)
 def GCH4(T):
     dG = 0.1115725 * T - 92.3855
     return dG * 1e3
@@ -24,7 +47,7 @@ def GCH4(T):
 @jit(nopython=True)
 def GFeO(T):
     dG = 0.05277 * T - 254.1475
-    return dG
+    return dG * 1e3
 
 
 # oxidized : reduced compound ratios calculated using fugacity
@@ -64,6 +87,18 @@ def CO2H2O_CH4ratio(fO2, T):
     Xspecies_XCH4 = Keq * fO2**2
     return Xspecies_XCH4
 
+
+def H2O_H2ratio(fO2, Tin):
+    ''' solve for H2O/H2 ratio using equilibrium constant (by Yoshi Miyazaki)'''
+    muH2O = GH2O(Tin)
+    muO2  = 0.
+    muH2  = 0.
+    
+    dG  = - muH2 - 0.5*muO2 + muH2O  # in J/mol
+    Keq = np.exp(-dG/(R*Tin))       # convert to equilibrium constant
+    xH2O_xH2 = Keq*np.sqrt(fO2)    # equilibrium relation
+    
+    return xH2O_xH2
 
 # equilibrium constants for re-equilibrium
 @jit(nopython=True)
