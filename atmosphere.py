@@ -13,7 +13,6 @@ def fO2_fromIW(fO2_dIW, T):
 
     # convert
     fO2    = fO2_IW * fO2_dIW
-
     return fO2
 
 

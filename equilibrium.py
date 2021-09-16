@@ -1,9 +1,7 @@
-from atmosredox import H2O_H2ratio
 import math
 import numpy as np
 import matplotlib.pyplot as plt
-from atmosphere import CO2H2O_CH4ratio, CO2_COratio, Keq_FeO_H2O, Keq_FeO_CO2, Keq_FeO_CH4
-from numba import jit, njit, float32
+from atmosphere import *
 from calculate_initial_parameters import *
 from volumes import *
 from masses import *
@@ -16,7 +14,7 @@ planet_core_radius = core_radius(r_planet)
 mantle_mass = calculate_shell_vol(r_planet - planet_core_radius, r_planet) * rho_mantle
 core_mass = calculate_vol(planet_core_radius) * rho_core
 P_eq = Peq(calculate_g(mantle_mass + core_mass), planet_mantle_depth) # GPa
-T_eq = Teq(P_eq * 10**9)
+T_eq = Teq(P_eq * 1e9)
 
 
 def calculate_impactor_core_radius(impactor_radius):
@@ -82,6 +80,8 @@ def f(fe_metal, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, v_meta
     # print("conc si metal    conc fe sil     conc si sil     conc fe metal", conc_si_metal, conc_fe_sil, conc_si_sil, conc_fe_metal)
     return conc_si_metal * conc_fe_sil**2 / conc_si_sil / conc_fe_metal**2 - actual_kd_si
 
+# max value for fe metal = 
+# fe_sil = mol_o - ni_sil - mol_mg - mol_si * 2
 
 @njit
 def g(v_metal, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, fe_metal):
@@ -100,6 +100,7 @@ def g(v_metal, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, fe_meta
     conc_v_sil = (mol_v - v_metal) / (si_sil + fe_sil + ni_sil + (mol_v - v_metal) * 2 + mol_mg)
     conc_fe_metal = fe_metal / (fe_metal + ni_metal + si_metal + v_metal)
     conc_fe_sil = fe_sil / (fe_sil + ni_sil + si_sil + mol_v - v_metal + mol_mg)
+    # print("kd difference v  ", conc_v_metal * conc_fe_sil**(3 / 2) / conc_v_sil / conc_fe_metal**(3 / 2) - actual_kd_v)
     return conc_v_metal * conc_fe_sil**(3 / 2) / conc_v_sil / conc_fe_metal**(3 / 2) - actual_kd_v
     
 
@@ -157,20 +158,20 @@ def solve_atmosphere(mol_fe_mo, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_
 def root_bracket(metal, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, aux):
     """Finds the lower/upper bound of an interval that can be used for the bisection search."""
     if metal == "fe":
-        val = mol_fe
+        val = 1
         FB = f(mol_fe, mol_fe, mol_ni, mol_si,
                mol_o, mol_v, mol_mg, P_eq, T_eq, aux)
-        while val > 0 and FB * f(val, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, aux) > 0:
-            val /= 1.00001  # multiply by small enough number for root to be found
-        print("lower bound", val)
+        while val < mol_fe and FB * f(val, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, aux) > 0:
+            val *= 1.00000001  # multiply by small enough number for root to be found
+        # print("lower bound", val)
         return val
 
     elif metal == "v":
         val = 1e-6
         FA = g(0, mol_fe, mol_ni, mol_si, mol_o,
                mol_v, mol_mg, P_eq, T_eq, aux)
-        while val <= mol_v and FA * g(val, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, aux) > 0:
-            val *= 1.0001
+        while val < mol_v and FA * g(val, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, aux) > 0:
+            val *= 1.001
         return val
 
 
