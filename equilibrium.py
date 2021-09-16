@@ -4,53 +4,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 from atmosphere import CO2H2O_CH4ratio, CO2_COratio, Keq_FeO_H2O, Keq_FeO_CO2, Keq_FeO_CH4
 from numba import jit, njit, float32
-# from growth import Peq, Teq, calculate_g, core_radius, calculate_shell_vol, calculate_vol
+from calculate_initial_parameters import *
+from volumes import *
+from masses import *
+from densities import *
+from planetary_embryo_initial_parameters import *
+from conversions import *
+from initial_composition import *
 
-# constants
-r_planet = 4500 * 1E3  # m
-rho_mantle = 3000
-rho_core = 8000
-
-planet_mantle_depth = 300 * 1E3  # assumed
-
-# core_radius = core_radius(r_planet)
-# mantle_mass = calculate_shell_vol(r_planet - core_radius, r_planet)
-# core_mass = calculate_vol(core_radius) * rho_core
-# P_eq = Peq(calculate_g(mantle_mass + core_mass), planet_mantle_depth) # GPa
-# T_eq = Teq(P_eq)
-
-
-# starting mantle composition of oxygen-free elements, and oxygen, in wt% (assuming FeO is 8 wt%, MgO is 42 wt%, SiO2 is 50 - 0.00606 wt%, V is 0.00606 wt%). From Lyubetskaya and Korenaga, then scaled to 100. About 8% of mass was missing without scaling. 1 : 1.0868
-scale_factor = 1.08# 68
-fe_s = 6.22 * scale_factor # FeO wt% = 8.00
-mg_s = 23.41 * scale_factor # 38.82
-si_s = 21.09 * scale_factor # 45.19
-ni_s = 0
-v_s = 0.00606
-
-# from Hirschmann 2009 assuming most water rich starting composition
-h_s = 0.01
-c_s = 0.01
-
-# rest is oxygen
-o_s = 100 - fe_s - mg_s - si_s - ni_s - v_s - h_s - c_s
-
-
-# starting core composition
-fe = 85
-ni = 15
-si = 0
-v = 0
-
-# molar masses (g / mol)
-molar_mass_fe = 55.8
-molar_mass_ni = 58.7
-molar_mass_si = 28
-molar_mass_o = 16
-molar_mass_v = 50.9415
-molar_mass_mg = 24.3
-molar_mass_h = 1
-molar_mass_c = 12
+planet_core_radius = core_radius(r_planet)
+mantle_mass = calculate_shell_vol(r_planet - planet_core_radius, r_planet) * rho_mantle
+core_mass = calculate_vol(planet_core_radius) * rho_core
+P_eq = Peq(calculate_g(mantle_mass + core_mass), planet_mantle_depth) # GPa
+T_eq = Teq(P_eq * 10**9)
 
 
 def calculate_impactor_core_radius(impactor_radius):
@@ -60,29 +26,14 @@ def calculate_impactor_core_radius(impactor_radius):
     return (0.15 * impactor_radius**3)**(1 / 3)
 
 
-def calculate_shell_vol(mantle_depth, r_obj):
-    """Returns the volume of a spherical shell given the width of the shell and its outer radius."""
-    return 4 / 3 * math.pi * (r_obj**3 - (r_obj - mantle_depth)**3)
-
-
-def calculate_vol(r_obj):
-    """Returns the volume of a sphere."""
-    return 4 / 3 * math.pi * r_obj**3
-
-
 def calculate_element_mass(section_mass, element_wt_percent):
     """Returns the mass of an element in g in the mantle/core given the wt% of the element. """
     return section_mass * element_wt_percent * 0.01 * 1000
 
 
-def convert_mass_to_moles(compound_mass, compound_molar_mass):
-    """Converts mass to moles given the mass of a compound in g and its molar mass in g / mol."""
-    return compound_mass / compound_molar_mass
-
-
 def calculate_total_element_moles(element, element_molar_mass, planet_mantle_depth, r_planet, r_impactor, impactor_core_radius):
     """Given an impactor and planet, calculates the total number of moles of Si, Ni, Fe, or FeO. Does not calculate moles of O."""
-    if element == si or element == fe_s or element == v or element == mg:
+    if element == si_s or element == fe_s or element == v_s or element == mg_s or element == o_s:
         mass = (calculate_shell_vol(planet_mantle_depth, r_planet) +
                 calculate_shell_vol(r_impactor - impactor_core_radius, r_impactor)) * rho_mantle
         element_mass = calculate_element_mass(mass, element)
@@ -119,6 +70,7 @@ def f(fe_metal, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, v_meta
     actual_kd_ni = calculate_kd("ni", T_eq, P_eq, 1.06, 1553, -98)
     actual_kd_si = calculate_kd("si", T_eq, P_eq, 2.98, -15934, 0.)
     fe_sil = mol_fe - fe_metal
+    # print("total mol fe, total mol fe metal", mol_fe, fe_metal)
     ni_sil = mol_ni * fe_sil / (fe_sil + actual_kd_ni * fe_metal)
     ni_metal = mol_ni - ni_sil
     si_sil = (mol_o - ni_sil - fe_sil - mol_mg) / 2  # ignore mass of V oxides
@@ -127,6 +79,7 @@ def f(fe_metal, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, v_meta
     conc_si_sil = si_sil / (si_sil + fe_sil + ni_sil + (mol_v - v_metal) + mol_mg)
     conc_fe_metal = fe_metal / (fe_metal + ni_metal + si_metal + v_metal)
     conc_fe_sil = fe_sil / (fe_sil + ni_sil + si_sil + (mol_v - v_metal) + mol_mg)
+    # print("conc si metal    conc fe sil     conc si sil     conc fe metal", conc_si_metal, conc_fe_sil, conc_si_sil, conc_fe_metal)
     return conc_si_metal * conc_fe_sil**2 / conc_si_sil / conc_fe_metal**2 - actual_kd_si
 
 
@@ -209,6 +162,7 @@ def root_bracket(metal, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq
                mol_o, mol_v, mol_mg, P_eq, T_eq, aux)
         while val > 0 and FB * f(val, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, aux) > 0:
             val /= 1.00001  # multiply by small enough number for root to be found
+        print("lower bound", val)
         return val
 
     elif metal == "v":

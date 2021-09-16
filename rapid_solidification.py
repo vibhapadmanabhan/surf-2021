@@ -3,7 +3,6 @@ from growth import *
 from atmosredox import H2O_H2ratio, GH2O, fO2_fromIW
 from atmosphere import CO2_COratio, Keq_FeO_H2O, GFeO, CO2H2O_CH4ratio
 
-
 """This file models the rapid solidification theory. The magma ocean solidifies completely before the next impactor arrives."""
 
 
@@ -154,7 +153,6 @@ while r_planet <= 1000e3:  # growing the planetesimal to a planetary embryo
 
 
     # track other values
-    # X_Si.append(mols_si_c / (mols_fe_c + mols_v_c + mols_ni_c + mols_si_c))
     X_Si.append(si_metal / (si_metal + fe_metal + ni_metal + v_metal))
     X_NiO.append(ni_sil / (fe_sil + ni_sil + si_sil + mol_v / 2 + mol_mg * h_frac))
     X_Ni.append(ni_metal / (fe_metal + si_metal + ni_metal + v_metal))
