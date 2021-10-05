@@ -106,6 +106,7 @@ while r_planet <= 1000e3:  # growing the planetesimal to a planetary embryo
 
     # Solve using equilibrium and mass balance equations for the amount of iron in metal phase.
     fe_metal = bisection_search("fe", root_bracket("fe", mol_fe_MO, mol_ni_MO, mol_si_MO, mol_o_MO, mol_v_MO, mol_mg_MO, P_eq, T_eq, v_metal), mol_fe_MO, 1e-6, mol_fe_MO, mol_ni_MO, mol_si_MO, mol_o_MO, mol_v_MO, mol_mg_MO, P_eq, T_eq, v_metal)
+    print("kd error", f(fe_metal, mol_fe_MO, mol_ni_MO, mol_si_MO, mol_o_MO, mol_v_MO, mol_mg_MO, P_eq, T_eq, v_metal))
     fe_sil = mol_fe_MO - fe_metal
     actual_kd_ni = calculate_kd("ni", T_eq, P_eq, 1.06, 1553, -98)
     actual_kd_si = calculate_kd("si", T_eq, P_eq, 2.98, -15934, 0)
@@ -190,9 +191,9 @@ while r_planet <= 1000e3:  # growing the planetesimal to a planetary embryo
     mol_CH4 = (mol_h - 2 * mol_H2 - 2 * mol_H2O) / 4
     mol_CO2 = mol_o_atmos - mol_c - mol_H2O + mol_CH4 # from C and O mass bal.
     mol_CO = mol_CO2 / CO2_COratio(fO2_bar, Teq(0))
-    mol_volatiles = mol_H2O + mol_H2 + mol_CO + mol_CO2 + mol_CH4
+    mol_volatiles = mol_H2O + mol_H2 + mol_CO + mol_CO2 + mol_CH
     mol_fe_reeq = fe_sil
-    mol_CH4_tot = mol_CH4  # mol_CH4 is now the total amount of CH4 in atmos.
+    mol_CH4_tot = mol_CH4  # mol_CH4 is now the total amount of CH4 in atmos.,
 
 
     # calculate total amount of oxygen in atmosphere-MO system
@@ -203,11 +204,11 @@ while r_planet <= 1000e3:  # growing the planetesimal to a planetary embryo
     # re-equilibrium between FeO and volatiles
     mol_fe_mo = bisection_search("mol_fe_mo", 1e-6, fe_sil, 1e-6, fe_sil, ni_sil, si_sil, mol_o_atmos, v_sil, mol_mg * h_frac, 0, Teq(0), mol_h)
     kd_CO2 = Keq_FeO_CO2(Teq(0))
-    print("keq co2", kd_CO2)
     # kd_CH4 = Keq_FeO_CH4(T_eq)
     kd_H2O = Keq_FeO_H2O(Teq(0))
     print("keq H2o", kd_H2O)
-    mol_fe_metal = mol_fe - mol_fe_mo
+    print("keq co2", kd_CO2)
+    mol_fe_metal = mol_fe_reeq - mol_fe_mo
     conc_fe_mo = mol_fe_mo / (ni_sil + mol_fe_mo + si_sil + mol_mg * h_frac + v_sil)
     H2O_to_H2 = kd_H2O * conc_fe_mo
     mol_H2 = 1 / (H2O_to_H2 + 1) * mol_h / 2 # ignore CH4 here because its concentration is low
@@ -223,7 +224,7 @@ while r_planet <= 1000e3:  # growing the planetesimal to a planetary embryo
     conc_CO2 = mol_CO2 / mol_volatiles
     conc_H2O = mol_H2O / mol_volatiles
     conc_H2 = mol_H2 / mol_volatiles
-
+    print("Conc H2O after reeq", conc_H2O)
     mol_CO_tot = mol_CO
     mol_CO2_tot = mol_CO2
     mol_H2_tot = mol_H2
@@ -231,6 +232,7 @@ while r_planet <= 1000e3:  # growing the planetesimal to a planetary embryo
 
     # allow the Fe metal to go to planetary core and update size of planet
     mols_fe_c += mol_fe_metal
+    # print("proportion of metal", mol_fe_metal / (fe_sil + mol_fe_metal))
     # remove metal phase Fe from mantle
     mol_fe -= mol_fe_metal
 
