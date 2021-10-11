@@ -124,7 +124,7 @@ def solve_initial_atmosphere(mol_H2O, mol_o_atmos, mol_h, mol_c, fO2, T_eq):
 
 
 @njit
-def solve_atmosphere(mol_fe_mo, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, mol_h):
+def solve_atmosphere(mol_fe_mo, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, mol_c, T_eq, mol_h):
     """
     By finding the difference between the actual Kd(FeO - CH4) and calculated Kd(FeO - CH4), solves for FeO, Fe, CO, CO2, H2, H2O molar amounts during re-equilibrium governed by the following equations:
 
@@ -144,15 +144,16 @@ def solve_atmosphere(mol_fe_mo, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_
     mol_H2 = 1 / (H2O_to_H2 + 1) * mol_h / 2
     mol_H2O = (mol_h - 2 * mol_H2) / 2
     CO2_to_CO = kd_CO2 * conc_fe_mo
-    mol_CO = 1 / (2 * CO2_to_CO + 1) * (mol_o - mol_fe_mo - mol_H2O)
-    mol_CO2 = mol_CO * CO2_to_CO
+    mol_CO = 1 / (CO2_to_CO + 1) * mol_c
+    mol_CO2 = mol_c - mol_CO
     # mol_CH4 = mol_c - mol_CO - mol_CO2
     mol_volatiles = mol_H2O + mol_H2 + mol_CO + mol_CO2
     # conc_CH4 = mol_CH4 / mol_volatiles
     conc_CO = mol_CO / mol_volatiles
     conc_CO2 = mol_CO2 / mol_volatiles
-
-    return conc_CO2 / conc_fe_mo / conc_CO - kd_CO2
+    #print("co, co2, h2, h2o, mol fe", mol_CO, mol_CO2, mol_H2, mol_H2O, mol_fe)
+    #print("error", (mol_o - mol_CO - mol_CO2 * 2 - mol_H2O - mol_fe_mo) / mol_o)
+    return (mol_o - mol_CO - mol_CO2 * 2 - mol_H2O - mol_fe_mo) / mol_o
 
 @njit
 def root_bracket(metal, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol_mg, P_eq, T_eq, aux):
@@ -185,6 +186,7 @@ def bisection_search(metal, a, b, eps, mol_fe, mol_ni, mol_si, mol_o, mol_v, mol
         func = solve_atmosphere
     elif (metal == "atmos_initial"):
         func = solve_initial_atmosphere
+
     while True:
         FA = func(a, mol_fe, mol_ni, mol_si, mol_o,
                   mol_v, mol_mg, P_eq, T_eq, aux)

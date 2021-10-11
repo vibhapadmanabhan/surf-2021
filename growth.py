@@ -27,6 +27,11 @@ impactor_size = []
 mantle_depth = []
 fO2 = []
 metal_pond_lifetime = []
+total_H2O = []
+total_H2 = []
+total_CH4 = []
+total_CO2 = []
+total_CO = []
 
 
 def save_data(X_Fe, X_Si, X_Ni, X_Va, X_FeO, X_SiO2, X_NiO, X_Mg, X_VO, X_FeO_impactor, gravity, pressure, temperature, planet_size, impactor_size, mantle_depth, fO2, filename):

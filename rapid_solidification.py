@@ -1,7 +1,8 @@
 from growth import *
+import matplotlib.pyplot as plt
 
 """This file models the rapid solidification theory. The magma ocean solidifies completely before the next impactor arrives."""
-
+final_fO2_list = []
 
 planet_core_radius = core_radius(r_planet)
 melt_factor = 10  # melt volume produced upon impact = melt_factor * vol_impactor
@@ -106,7 +107,7 @@ while r_planet <= 1000e3:  # growing the planetesimal to a planetary embryo
 
     # Solve using equilibrium and mass balance equations for the amount of iron in metal phase.
     fe_metal = bisection_search("fe", root_bracket("fe", mol_fe_MO, mol_ni_MO, mol_si_MO, mol_o_MO, mol_v_MO, mol_mg_MO, P_eq, T_eq, v_metal), mol_fe_MO, 1e-6, mol_fe_MO, mol_ni_MO, mol_si_MO, mol_o_MO, mol_v_MO, mol_mg_MO, P_eq, T_eq, v_metal)
-    print("kd error", f(fe_metal, mol_fe_MO, mol_ni_MO, mol_si_MO, mol_o_MO, mol_v_MO, mol_mg_MO, P_eq, T_eq, v_metal))
+    #print("kd error", f(fe_metal, mol_fe_MO, mol_ni_MO, mol_si_MO, mol_o_MO, mol_v_MO, mol_mg_MO, P_eq, T_eq, v_metal))
     fe_sil = mol_fe_MO - fe_metal
     actual_kd_ni = calculate_kd("ni", T_eq, P_eq, 1.06, 1553, -98)
     actual_kd_si = calculate_kd("si", T_eq, P_eq, 2.98, -15934, 0)
@@ -114,11 +115,13 @@ while r_planet <= 1000e3:  # growing the planetesimal to a planetary embryo
     ni_metal = mol_ni_MO - ni_sil
     si_sil = (mol_o_MO - ni_sil - fe_sil - mol_mg_MO) / 2
     si_metal = mol_si_MO - si_sil
-    print("si metal", si_metal)
-    print("fe metal conc", fe_metal / (fe_metal + si_metal + v_metal + ni_metal))
+    #print("si metal", si_metal)
+    #print("fe metal conc", fe_metal / (fe_metal + si_metal + v_metal + ni_metal))
+    #print("fe sil, ni sil, fe metal, ni metal , si sil, si metal, mol o MO", fe_sil, ni_sil, fe_metal,ni_metal, si_sil, si_metal, mol_o_MO)
     v_metal = bisection_search("v", 0, root_bracket("v", mol_fe_MO, mol_ni_MO, mol_si_MO, mol_o_MO, mol_v_MO, mol_mg_MO, P_eq, T_eq, fe_metal), 1e-6, mol_fe_MO, mol_ni_MO, mol_si_MO, mol_o_MO, mol_v_MO, mol_mg_MO, P_eq, T_eq, fe_metal)
+    #print("after vanadium")
     v_sil = mol_v_MO - v_metal
-    print("completed initial equilibrium")
+    #print("completed initial equilibrium")
 
     # add moles in metal phase to total moles of each element in the melt pond (which eventually sinks down into the planetary core)
     mols_fe_c += fe_metal
@@ -173,63 +176,81 @@ while r_planet <= 1000e3:  # growing the planetesimal to a planetary embryo
     mol_c = h_frac * 0.01 * c_s * new_mantle_mass * 1000 / (molar_mass_c + molar_mass_o * 2) + delivered_c
 
     # add moles of element already in atmosphere
-    mol_h += mol_CH4_tot * 4 + mol_H2O_tot * 2 + mol_H2_tot * 2
-    mol_c += mol_CH4_tot + mol_CO2_tot + mol_CO_tot
+    mol_h_atmosphere = mol_CH4_tot * 4 + mol_H2O_tot * 2 + mol_H2_tot * 2
+    #print("mol h atmosphere, mol h", mol_h_atmosphere, mol_h)
+    mol_c_atmosphere = mol_CH4_tot + mol_CO2_tot + mol_CO_tot
 
 
     # using fO2 from equilibrium calculate initial molar amounts of H2O, H2, CO2, CO, CH4 to determine how much oxygen is available for re-equilibrium
-    mol_o_atmos = mol_c * 2 + mol_h / 2 + mol_CO2_tot * 2 + mol_CO_tot + mol_H2O_tot
+    mol_o_atmos = mol_c * 2 + mol_h / 2  + mol_H2O_tot + mol_CO_tot + 2 * mol_CO2_tot
+
+    mol_c += mol_c_atmosphere
+    mol_h += mol_h_atmosphere
 
     # set an upper bound for moles of water such that no other amounts become negative
     upper_bound = H2O_H2ratio(fO2_bar, Teq(0)) * mol_h / 2 / (1 + H2O_H2ratio(fO2_bar, Teq(0)))
 
 
     # solve for initial amounts of each volatile
-    mol_H2O = bisection_search_atmosphere(1e-16, upper_bound, 1e-3, mol_o_atmos, mol_h, mol_c, fO2_bar, Teq(0))
-    print("completed oxidation")
+    #print("mol H, mol C, mol O atmosphere", mol_h, mol_c, mol_o_atmos)
+    mol_H2O = bisection_search_atmosphere(1e-16, upper_bound, 1e-6, mol_o_atmos, mol_h, mol_c, fO2_bar, Teq(0))
+    
+    #print("completed oxidation")
     mol_H2 = mol_H2O / H2O_H2ratio(fO2_bar, Teq(0))
     mol_CH4 = (mol_h - 2 * mol_H2 - 2 * mol_H2O) / 4
     mol_CO2 = mol_o_atmos - mol_c - mol_H2O + mol_CH4 # from C and O mass bal.
     mol_CO = mol_CO2 / CO2_COratio(fO2_bar, Teq(0))
-    mol_volatiles = mol_H2O + mol_H2 + mol_CO + mol_CO2 + mol_CH
+    mol_volatiles = mol_H2O + mol_H2 + mol_CO + mol_CO2 + mol_CH4
     mol_fe_reeq = fe_sil
     mol_CH4_tot = mol_CH4  # mol_CH4 is now the total amount of CH4 in atmos.,
+    #print("before mol CO2, mol CO, mol_CH4, mol_H2, mol_H2O, fe_sil", mol_CO2, mol_CO, mol_CH4, mol_H2, mol_H2O, fe_sil)
 
 
     # calculate total amount of oxygen in atmosphere-MO system
     mol_o_atmos = mol_fe_reeq + mol_H2O + mol_CO + mol_CO2 * 2
+    #print("atmospheric oxygen", mol_o_atmos)
     mol_h = mol_H2 * 2 + mol_H2O * 2   # ignore CH4
 
 
     # re-equilibrium between FeO and volatiles
-    mol_fe_mo = bisection_search("mol_fe_mo", 1e-6, fe_sil, 1e-6, fe_sil, ni_sil, si_sil, mol_o_atmos, v_sil, mol_mg * h_frac, 0, Teq(0), mol_h)
+    #print("total fe", fe_sil)
+    mol_fe_mo = bisection_search("mol_fe_mo", 1e-20, fe_sil, 1e-2, fe_sil, ni_sil, si_sil, mol_o_atmos, v_sil, mol_mg * h_frac, mol_c, Teq(0), mol_h)
     kd_CO2 = Keq_FeO_CO2(Teq(0))
     # kd_CH4 = Keq_FeO_CH4(T_eq)
     kd_H2O = Keq_FeO_H2O(Teq(0))
-    print("keq H2o", kd_H2O)
-    print("keq co2", kd_CO2)
-    mol_fe_metal = mol_fe_reeq - mol_fe_mo
+    #print("keq H2o", kd_H2O)
+    #print("keq co2", kd_CO2)
+    mol_fe_metal = fe_sil - mol_fe_mo
+    print("percentage of iron removed", mol_fe_metal / mol_fe_reeq)
     conc_fe_mo = mol_fe_mo / (ni_sil + mol_fe_mo + si_sil + mol_mg * h_frac + v_sil)
     H2O_to_H2 = kd_H2O * conc_fe_mo
     mol_H2 = 1 / (H2O_to_H2 + 1) * mol_h / 2 # ignore CH4 here because its concentration is low
     mol_H2O = (mol_h - 2 * mol_H2) / 2
     CO2_to_CO = kd_CO2 * conc_fe_mo
-    mol_CO = 1 / (2 * CO2_to_CO + 1) * (mol_o_atmos - mol_fe_mo - mol_H2O)
-    mol_CO2 = mol_CO * CO2_to_CO
+    mol_CO = 1 / (CO2_to_CO + 1) * mol_c
+    mol_CO2 = mol_c - mol_CO
     # mol_CH4 = mol_c - mol_CO - mol_CO2
     mol_volatiles = mol_H2O + mol_H2 + mol_CO + mol_CO2
+
+    #print("after mol CO2, mol CO, mol_CH4, mol_H2, mol_H2O, fe in metal, fe_sil", mol_CO2, mol_CO, mol_CH4, mol_H2, mol_H2O, mol_fe_metal, mol_fe_mo)
+
     # conc_CH4 = mol_CH4 / mol_volatiles
     conc_CO = mol_CO / mol_volatiles
-    print("conc CO2 after FeO re-eq", conc_CO)
+    #print("conc CO2 after FeO re-eq", conc_CO)
     conc_CO2 = mol_CO2 / mol_volatiles
     conc_H2O = mol_H2O / mol_volatiles
     conc_H2 = mol_H2 / mol_volatiles
-    print("Conc H2O after reeq", conc_H2O)
+    #print("Conc H2O after reeq", conc_H2O)
     mol_CO_tot = mol_CO
     mol_CO2_tot = mol_CO2
     mol_H2_tot = mol_H2
     mol_H2O_tot = mol_H2O
-
+    print("atmospheric composition", mol_CO_tot, mol_CO2_tot, mol_H2_tot, mol_H2O_tot)
+    total_CO.append(mol_CO_tot)
+    total_CO2.append(mol_CO2_tot)
+    total_H2.append(mol_H2_tot)
+    total_H2O.append(mol_H2O_tot)
+    total_CH4.append(mol_CH4_tot)
     # allow the Fe metal to go to planetary core and update size of planet
     mols_fe_c += mol_fe_metal
     # print("proportion of metal", mol_fe_metal / (fe_sil + mol_fe_metal))
@@ -246,3 +267,14 @@ while r_planet <= 1000e3:  # growing the planetesimal to a planetary embryo
     new_mantle_depth = shell_width(new_mantle_mass, rho_mantle, planet_core_radius)
     mantle_depth.append(new_mantle_depth)
     r_planet = new_mantle_depth + planet_core_radius
+
+    mol_volatiles_tot = mol_H2_tot + mol_H2O_tot + mol_CO2_tot + mol_CO_tot + mol_CH4_tot
+    fraction_H2O = mol_H2O_tot / mol_volatiles_tot
+    fraction_H2 = mol_H2_tot / mol_volatiles_tot
+    final_fO2 = calculate_fugacity(fraction_H2O, fraction_H2, Keq_FeO_H2O(Teq(0)))
+    final_fO2_list.append(final_fO2)
+    print("final fO2", final_fO2)
+
+print(total_H2O)
+plt.plot(final_fO2_list, total_CO)
+plt.show()
