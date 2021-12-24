@@ -99,6 +99,16 @@ def H2O_H2ratio(fO2, Tin):
     
     return xH2O_xH2
 
+def Keq_H2O_H2(Tin):
+    muH2O = GH2O(Tin)
+    muO2  = 0.
+    muH2  = 0.
+    dG  = - muH2 - 0.5*muO2 + muH2O  # in J/mol
+    Keq = np.exp(-dG/(R*Tin))  
+
+    return Keq
+
+
 # equilibrium constants for re-equilibrium
 @jit(nopython=True)
 def Keq_FeO_H2O(T):

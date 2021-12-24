@@ -225,3 +225,16 @@ def calculate_ln_o_iw_fugacity(X_FeO, X_Fe):
 def calculate_fugacity(X_prod, X_reag, Keq):
     """Calculates fO2"""
     return (X_prod / X_reag / Keq)**2
+
+def calc_metal(mol_fe, mol_ni, mol_si, mol_mg, T_eq, P_eq):
+    actual_kd_ni = calculate_kd("ni", T_eq, P_eq, 1.6, 1553, -98)
+    actual_kd_si = calculate_kd("si", T_eq, P_eq, 2.98, -15934, 0)
+
+    mol_oxide = mol_fe + mol_ni + 2 * mol_si + mol_mg
+
+    r_NiO = mol_ni / mol_oxide
+    r_FeO = mol_fe / mol_oxide
+    r_SiO2 = mol_si / mol_oxide
+    r_NiFe = actual_kd_ni * r_NiO / r_FeO
+    r_SiFe2 = actual_kd_si * r_SiO2 / (r_FeO * r_FeO)
+
